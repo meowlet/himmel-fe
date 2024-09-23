@@ -17,6 +17,7 @@ export const SignInForm: React.FC = () => {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [successMessage, setSuccessMessage] = useState(""); // Thêm state mới
 
@@ -28,14 +29,22 @@ export const SignInForm: React.FC = () => {
     try {
       const data = signInSchema.parse({ identifier, password });
 
+      const requestBody = {
+        identifier: data.identifier,
+        password: data.password,
+        ...(rememberMe && { rememberMe: rememberMe }), // Thêm field rememberMe nếu được tick
+      };
+
       const response = await fetch(Constant.API_URL + "/auth/sign-in", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log(requestBody);
 
       const result = await response.json();
 
@@ -108,6 +117,8 @@ export const SignInForm: React.FC = () => {
             id="remember-me"
             name="remember-me"
             type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
             className="h-4 w-4 text-light-primary focus:ring-light-primary border-light-outline rounded"
           />
           <label
