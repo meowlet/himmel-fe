@@ -15,6 +15,8 @@ import {
   MagnifyingGlassCircleIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/solid";
+import Pagination from "../common/Pagination";
+import { CurrentFilters } from "./CurrentFilters";
 
 interface Tag {
   _id: string;
@@ -34,15 +36,14 @@ export const FictionList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
-  const itemsPerPage = 12;
+  const [filterParams, setFilterParams] = useState<any>({}); // Thêm state cho filterParams
 
   const fetchFictions = useCallback(
     async (queryString: string) => {
       try {
-        const res = await fetch(
-          `${Constant.API_URL}/fiction?${queryString}&page=${currentPage}&limit=${itemsPerPage}`
-        );
+        const res = await fetch(`${Constant.API_URL}/fiction?${queryString}`);
         const data = await res.json();
         if (data.status === "success") {
           setFictions(data.data.fictions);
@@ -52,7 +53,7 @@ export const FictionList: React.FC = () => {
         console.error("Lỗi khi lấy danh sách truyện:", error);
       }
     },
-    [currentPage]
+    [itemsPerPage]
   );
 
   const fetchTags = async () => {
@@ -80,8 +81,7 @@ export const FictionList: React.FC = () => {
   };
 
   useEffect(() => {
-    const queryParams = { ...Object.fromEntries(searchParams.entries()) };
-    const queryString = Util.buildQueryString(queryParams);
+    const queryString = searchParams.toString();
     fetchFictions(queryString);
   }, [searchParams, fetchFictions]);
 
@@ -90,16 +90,19 @@ export const FictionList: React.FC = () => {
     fetchUsers();
   }, []);
 
-  // Cập nhật hàm handleSearch
   const handleSearch = useCallback(
     (value: string) => {
-      const newQuery = value ? `query=${encodeURIComponent(value)}` : "";
-      router.push(`?${newQuery}`, { scroll: false });
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) {
+        params.set("query", value);
+      } else {
+        params.delete("query");
+      }
+      router.push(`?${params.toString()}`, { scroll: false });
     },
-    [router]
+    [router, searchParams]
   );
 
-  // Thêm useEffect để đồng bộ searchTerm với URL
   useEffect(() => {
     const query = searchParams.get("query");
     if (query) {
@@ -111,8 +114,9 @@ export const FictionList: React.FC = () => {
 
   const handleClearSearch = () => {
     setSearchTerm("");
-    const newQuery = "";
-    router.push(`?${newQuery}`, { scroll: false });
+    const searchParamsCopy = new URLSearchParams(searchParams.toString());
+    searchParamsCopy.delete("query");
+    router.push(`?${searchParamsCopy.toString()}`, { scroll: false });
   };
 
   const handleOpenFilterModal = () => {
@@ -124,10 +128,32 @@ export const FictionList: React.FC = () => {
   };
 
   const handleApplyFilter = (filterParams: any) => {
-    const queryString = Util.buildQueryString(filterParams);
-    router.push(`?${queryString}`, { scroll: false });
-    fetchFictions(queryString);
+    router.push(`?${filterParams.toString()}`, { scroll: false });
+    fetchFictions(filterParams.toString());
     setIsFilterModalOpen(false);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", page.toString()); // Cập nhật key page
+    router.push(`?${params.toString()}`, { scroll: false });
+    fetchFictions(params.toString());
+  };
+
+  const handleItemsPerPageChange = (items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("limit", items.toString());
+    router.push(`?${params.toString()}`, { scroll: false });
+    fetchFictions(params.toString());
+  };
+
+  const handleClearFilters = () => {
+    const params = new URLSearchParams();
+    router.push(`?${params.toString()}`, { scroll: false });
+    fetchFictions(params.toString());
   };
 
   return (
@@ -156,6 +182,13 @@ export const FictionList: React.FC = () => {
         </Button>
       </div>
 
+      <CurrentFilters
+        searchParams={searchParams}
+        users={users}
+        tags={tags}
+        handleClearFilters={handleClearFilters}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {fictions.map((fiction) => (
           <FictionCard key={fiction._id} fiction={fiction} allTags={tags} />
@@ -174,6 +207,13 @@ export const FictionList: React.FC = () => {
           users={users}
         />
       </Modal>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
     </div>
   );
 };
