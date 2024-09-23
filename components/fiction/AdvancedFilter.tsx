@@ -7,15 +7,16 @@ import { Tag, User } from "@/types/Fiction";
 // Định nghĩa kiểu cho filterParams
 type FilterParams = {
   query: string;
-  authors: string[];
+  author: string;
   tags: string[];
-  type: string;
+  type: "free" | "premium";
+  status: "finished" | "ongoing" | "hiatus" | "draft";
   createdFrom: string;
   createdTo: string;
   sortBy: string;
   sortOrder: string;
-  page: number;
-  limit: number;
+  // page: number; // Loại bỏ page
+  // limit: number; // Loại bỏ limit
 };
 
 interface AdvancedFilterProps {
@@ -33,15 +34,14 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 }) => {
   const [filterParams, setFilterParams] = useState<FilterParams>({
     query: "",
-    authors: [],
+    author: "",
     tags: [],
-    type: "",
+    type: "free",
+    status: "finished",
     createdFrom: "",
     createdTo: "",
     sortBy: "title",
     sortOrder: "asc",
-    page: 1,
-    limit: 5,
   });
 
   const handleInputChange = (
@@ -66,13 +66,31 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   };
 
   const handleApply = () => {
-    onApply(filterParams);
+    const params = new URLSearchParams();
+    Object.entries(filterParams).forEach(([key, value]) => {
+      if (Array.isArray(value) && value.length > 0) {
+        value.forEach((v) => params.append(key, v));
+      } else if (value) {
+        if (typeof value === "string") {
+          params.append(key, value);
+        } else if (Array.isArray(value)) {
+          value.forEach((v) => params.append(key, v));
+        }
+      }
+    });
+    onApply(params);
   };
 
   const tagOptions = tags.map((tag) => ({ value: tag._id, label: tag.name }));
   const typeOptions = [
     { value: "free", label: "Miễn phí" },
-    { value: "paid", label: "Trả phí" },
+    { value: "premium", label: "Trả phí" },
+  ];
+  const statusOptions = [
+    { value: "finished", label: "Hoàn thành" },
+    { value: "ongoing", label: "Đang tiếp tục" },
+    { value: "hiatus", label: "Nghỉ" },
+    { value: "draft", label: "Bản nháp" },
   ];
   const userOptions = users.map((user) => ({
     value: user._id,
@@ -92,7 +110,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
             options={userOptions}
             className="basic-multi-select bg-light-surfaceVariant"
             classNamePrefix="select"
-            onChange={handleMultiSelectChange("authors")}
+            onChange={handleMultiSelectChange("author")}
           />
         </div>
         <div className="w-full">
@@ -118,6 +136,18 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
             className="basic-multi-select w-full"
             classNamePrefix="select"
             onChange={handleSelectChange("type")}
+          />
+        </div>
+        <div className="w-full">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Trạng thái
+          </label>
+          <Select
+            name="status"
+            options={statusOptions}
+            className="basic-multi-select w-full"
+            classNamePrefix="select"
+            onChange={handleSelectChange("status")}
           />
         </div>
         <Input
