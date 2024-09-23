@@ -13,6 +13,7 @@ const navLinks = [
 export const Header: React.FC = () => {
   const router = useRouter();
   const [username, setUsername] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
@@ -64,6 +65,25 @@ export const Header: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      const response = await fetch(Constant.API_URL + "/me/sign-out", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setUsername(null);
+        setIsDropdownOpen(false);
+      } else {
+        throw new Error("Đăng xuất thất bại");
+      }
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error);
+    }
+  };
+
   return (
     <header className="bg-light-surface shadow-md fixed top-0 left-0 right-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -71,10 +91,23 @@ export const Header: React.FC = () => {
         <nav>
           <ul className="flex space-x-2">
             {username ? (
-              <li>
-                <span className="font-medium px-3 py-2">
+              <li className="relative">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="font-medium px-3 py-2 rounded-full text-light-onSurface hover:bg-light-surfaceVariant hover:text-light-primary transition-all duration-200 ease-in-out"
+                >
                   Xin chào, {username}
-                </span>
+                </button>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
               </li>
             ) : (
               navLinks.map((link) => (
