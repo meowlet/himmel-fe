@@ -84,6 +84,14 @@ export const Header: React.FC = () => {
     }
   };
 
+  const handlePremium = async () => {
+    router.push("/payment/premium");
+  };
+
+  const handleChangePassword = async () => {
+    router.push("/change-password");
+  };
+
   return (
     <header className="bg-light-surface shadow-md fixed top-0 left-0 right-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -104,7 +112,25 @@ export const Header: React.FC = () => {
                       onClick={handleSignOut}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      Đăng xuất
+                      Profile
+                    </button>
+                    <button
+                      onClick={handlePremium}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Premium
+                    </button>
+                    <button
+                      onClick={handleChangePassword}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Change Password
+                    </button>
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Sign out
                     </button>
                   </div>
                 )}
