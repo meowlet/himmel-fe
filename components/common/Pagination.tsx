@@ -30,34 +30,37 @@ const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between mt-4">
-      <div className="flex items-center">
-        <label className="mr-2">Items per page:</label>
+    <div className="flex flex-col sm:flex-row items-center justify-between mt-4 space-y-4 sm:space-y-0">
+      <div className="flex items-center justify-center sm:justify-start w-full sm:w-auto">
+        <label className="hidden sm:inline-block mr-2 text-sm sm:text-base">
+          Items per page:
+        </label>
         <input
           type="number"
           value={itemsPerPage}
           onChange={handleItemsPerPageChange}
-          className="border rounded p-1 w-16"
+          className="border rounded p-1 w-16 text-sm sm:text-base"
           min={1}
+          aria-label="Items per page"
         />
       </div>
-      <div className="flex">
+      <div className="flex w-full sm:w-auto justify-center sm:justify-end">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className={`px-4 py-2 border rounded-l ${
+          className={`px-2 sm:px-4 py-1 sm:py-2 border rounded-l text-sm sm:text-base ${
             currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          Previous
+          Prev
         </button>
-        <span className="px-4 py-2">
-          Page {currentPage} of {totalPages}
+        <span className="px-2 sm:px-4 py-1 sm:py-2 text-sm sm:text-base">
+          Page {currentPage} / {totalPages}
         </span>
         <button
           onClick={() => handlePageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className={`px-4 py-2 border rounded-r ${
+          className={`px-2 sm:px-4 py-1 sm:py-2 border rounded-r text-sm sm:text-base ${
             currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
