@@ -15,86 +15,95 @@ export const CurrentFilters: React.FC<CurrentFiltersProps> = ({
   tags,
   handleClearFilters,
 }) => {
-  const hasFilters = Array.from(searchParams.entries()).length > 0;
+  const excludedParams = ["sortBy", "sortOrder", "query", "limit", "page"];
+  const hasFilters = Array.from(searchParams.entries()).some(
+    ([key]) => !excludedParams.includes(key)
+  );
+
+  if (!hasFilters) return null;
 
   return (
     <div className="mb-4">
-      <h3 className="text-xl font-medium mb-2">Bộ lọc hiện tại:</h3>
-      <div className="flex flex-col gap-2">
-        {hasFilters && ( // Kiểm tra có bộ lọc không
-          <span className="flex flex-wrap gap-1">
-            <span className="font-medium">Tác giả:</span>
-            {Array.from(searchParams.entries()).map(([key, value]) => {
-              if (key === "author") {
-                const author = users.find((user) => user._id === value);
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xl font-medium text-light-secondary">
+          Current filters
+        </h3>
+        <button
+          onClick={handleClearFilters}
+          className="text-light-primary hover:underline cursor-pointer"
+        >
+          Clear filters
+        </button>
+      </div>
+      <div className="flex flex-col gap-3">
+        {searchParams.get("author") && (
+          <div className="flex items-start gap-2">
+            <span className="font-medium whitespace-nowrap">Author:</span>
+            <div className="flex flex-wrap gap-1">
+              {searchParams.getAll("author").map((authorId) => {
+                const author = users.find((user) => user._id === authorId);
                 return (
                   <span
-                    key={key}
+                    key={authorId}
                     className="bg-light-primary-container text-light-onPrimaryContainer rounded-full px-3 py-1 text-sm"
                   >
-                    {author ? author.username : value}
+                    {author ? author.username : authorId}
                   </span>
                 );
-              }
-              return null;
-            })}
-          </span>
+              })}
+            </div>
+          </div>
         )}
         {searchParams.getAll("tags").length > 0 && (
-          <span className="flex flex-wrap gap-1">
-            <span className="font-medium">Tags:</span>
-            {searchParams.getAll("tags").map((tagId) => {
-              const tag = tags.find((t) => t._id === tagId);
-              return (
-                <span
-                  key={tagId}
-                  className="bg-light-primary-container text-light-onPrimaryContainer rounded-full px-3 py-1 text-sm"
-                >
-                  {tag ? tag.code : tagId}
-                </span>
-              );
-            })}
-          </span>
+          <div className="flex items-start gap-2">
+            <span className="font-medium whitespace-nowrap">Tags:</span>
+            <div className="flex flex-wrap gap-1">
+              {searchParams.getAll("tags").map((tagId) => {
+                const tag = tags.find((t) => t._id === tagId);
+                return (
+                  <span
+                    key={tagId}
+                    className="bg-light-tertiary-container text-light-onTertiaryContainer rounded-full px-3 py-1 text-sm"
+                  >
+                    {tag ? tag.code.toLocaleUpperCase() : "N/A"}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         )}
         {searchParams.get("type") && (
-          <span className="flex flex-wrap gap-1">
-            <span className="font-medium">Loại:</span>
+          <div className="flex items-center gap-1">
+            <span className="font-medium">Type:</span>
             <span className="bg-light-primary-container text-light-onPrimaryContainer rounded-full px-3 py-1 text-sm">
-              {searchParams.get("type")}
+              {searchParams.get("type")?.toLocaleUpperCase()}
             </span>
-          </span>
+          </div>
         )}
         {searchParams.get("status") && (
-          <span className="flex flex-wrap gap-1">
-            <span className="font-medium">Trạng thái:</span>
+          <div className="flex items-center gap-1">
+            <span className="font-medium">Status:</span>
             <span className="bg-light-primary-container text-light-onPrimaryContainer rounded-full px-3 py-1 text-sm">
-              {searchParams.get("status")}
+              {searchParams.get("status")?.toLocaleUpperCase()}
             </span>
-          </span>
+          </div>
         )}
-        {hasFilters && ( // Kiểm tra có bộ lọc không
-          <span className="flex flex-wrap gap-1">
-            <span className="font-medium">Ngày tạo:</span>
+        {(searchParams.get("createdFrom") || searchParams.get("createdTo")) && (
+          <div className="flex items-center gap-1">
+            <span className="font-medium">Created:</span>
             {searchParams.get("createdFrom") && (
-              <span className="bg-light-primary-container text-light-onPrimaryContainer rounded-full px-3 py-1 text-sm">
-                Từ: {searchParams.get("createdFrom")}
+              <span className="bg-light-tertiary-container text-light-onTertiaryContainer rounded-full px-3 py-1 text-sm">
+                <span className="font-medium">FROM: </span>
+                {searchParams.get("createdFrom")}
               </span>
             )}
             {searchParams.get("createdTo") && (
-              <span className="bg-light-primary-container text-light-onPrimaryContainer rounded-full px-3 py-1 text-sm">
-                Đến: {searchParams.get("createdTo")}
+              <span className="bg-light-tertiary-container text-light-onTertiaryContainer rounded-full px-3 py-1 text-sm">
+                <span className="font-medium">TO: </span>
+                {searchParams.get("createdTo")}
               </span>
             )}
-          </span>
-        )}
-        {Array.from(searchParams.entries()).length > 0 && (
-          <Button
-            onClick={handleClearFilters}
-            className="ml-2"
-            variant="outlined"
-          >
-            Xóa bộ lọc
-          </Button>
+          </div>
         )}
       </div>
     </div>
