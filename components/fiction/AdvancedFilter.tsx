@@ -13,8 +13,6 @@ type FilterParams = {
   status: "finished" | "ongoing" | "hiatus" | "draft";
   createdFrom: string;
   createdTo: string;
-  sortBy: string;
-  sortOrder: string;
   // page: number; // Loại bỏ page
   // limit: number; // Loại bỏ limit
 };
@@ -24,6 +22,7 @@ interface AdvancedFilterProps {
   onClose: () => void;
   tags: Tag[];
   users: User[];
+  initialFilters: URLSearchParams;
 }
 
 export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
@@ -31,17 +30,20 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   onClose,
   tags,
   users,
+  initialFilters,
 }) => {
   const [filterParams, setFilterParams] = useState<FilterParams>({
-    query: "",
-    author: "",
-    tags: [],
-    type: "free",
-    status: "finished",
-    createdFrom: "",
-    createdTo: "",
-    sortBy: "title",
-    sortOrder: "asc",
+    query: initialFilters.get("query") || "",
+    author: initialFilters.get("author") || "",
+    tags: initialFilters.getAll("tags") || [],
+    type: initialFilters.get("type") as "free" | "premium",
+    status: initialFilters.get("status") as
+      | "finished"
+      | "ongoing"
+      | "hiatus"
+      | "draft",
+    createdFrom: initialFilters.get("createdFrom") || "",
+    createdTo: initialFilters.get("createdTo") || "",
   });
 
   const handleInputChange = (
@@ -83,14 +85,14 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
 
   const tagOptions = tags.map((tag) => ({ value: tag._id, label: tag.name }));
   const typeOptions = [
-    { value: "free", label: "Miễn phí" },
-    { value: "premium", label: "Trả phí" },
+    { value: "free", label: "Free" },
+    { value: "premium", label: "Premium" },
   ];
   const statusOptions = [
-    { value: "finished", label: "Hoàn thành" },
-    { value: "ongoing", label: "Đang tiếp tục" },
-    { value: "hiatus", label: "Nghỉ" },
-    { value: "draft", label: "Bản nháp" },
+    { value: "finished", label: "Finished" },
+    { value: "ongoing", label: "Ongoing" },
+    { value: "hiatus", label: "Hiatus" },
+    { value: "draft", label: "Draft" },
   ];
   const userOptions = users.map((user) => ({
     value: user._id,
@@ -102,20 +104,22 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
       <div className="grid grid-cols-1 gap-4">
         <div className="w-full">
           <label className="block text-sm font-medium text-light-onSurfaceVariant mb-1">
-            Tác giả
+            Author
           </label>
           <Select
-            isMulti
-            name="authors"
+            name="author"
             options={userOptions}
-            className="basic-multi-select bg-light-surfaceVariant"
+            className="basic-select bg-light-surfaceVariant"
             classNamePrefix="select"
-            onChange={handleMultiSelectChange("author")}
+            onChange={handleSelectChange("author")}
+            value={userOptions.find(
+              (option) => option.value === filterParams.author
+            )}
           />
         </div>
         <div className="w-full">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Thẻ
+            Tags
           </label>
           <Select
             isMulti
@@ -124,34 +128,43 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
             className="basic-multi-select w-full"
             classNamePrefix="select"
             onChange={handleMultiSelectChange("tags")}
+            value={tagOptions.filter((option) =>
+              filterParams.tags.includes(option.value)
+            )}
           />
         </div>
         <div className="w-full">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Loại truyện
+            Fiction Type
           </label>
           <Select
             name="type"
             options={typeOptions}
-            className="basic-multi-select w-full"
+            className="basic-select w-full"
             classNamePrefix="select"
             onChange={handleSelectChange("type")}
+            value={typeOptions.find(
+              (option) => option.value === filterParams.type
+            )}
           />
         </div>
         <div className="w-full">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Trạng thái
+            Status
           </label>
           <Select
             name="status"
             options={statusOptions}
-            className="basic-multi-select w-full"
+            className="basic-select w-full"
             classNamePrefix="select"
             onChange={handleSelectChange("status")}
+            value={statusOptions.find(
+              (option) => option.value === filterParams.status
+            )}
           />
         </div>
         <Input
-          label="Từ ngày"
+          label="From Date"
           name="createdFrom"
           type="date"
           value={filterParams.createdFrom}
@@ -159,7 +172,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
           className="w-full"
         />
         <Input
-          label="Đến ngày"
+          label="To Date"
           name="createdTo"
           type="date"
           value={filterParams.createdTo}
@@ -173,14 +186,14 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
           variant="outlined"
           className="mr-2 border-light-outline text-light-primary"
         >
-          Hủy
+          Cancel
         </Button>
         <Button
           onClick={handleApply}
           variant="filled"
           className="bg-light-primary text-light-onPrimary"
         >
-          Áp dụng
+          Apply
         </Button>
       </div>
     </div>
