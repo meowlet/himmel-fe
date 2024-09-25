@@ -17,6 +17,7 @@ import {
 } from "@heroicons/react/24/solid";
 import Pagination from "../common/Pagination";
 import { CurrentFilters } from "./CurrentFilters";
+import { SortSelector, SortType } from "./SortSelector";
 
 interface Tag {
   _id: string;
@@ -39,6 +40,8 @@ export const FictionList: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [filterParams, setFilterParams] = useState<any>({}); // Thêm state cho filterParams
+  const [sortType, setSortType] = useState<SortType>(SortType.CREATED_AT);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const fetchFictions = useCallback(
     async (queryString: string) => {
@@ -156,30 +159,51 @@ export const FictionList: React.FC = () => {
     fetchFictions(params.toString());
   };
 
+  const handleSortChange = (
+    newSortType: SortType,
+    newSortOrder: "asc" | "desc"
+  ) => {
+    setSortType(newSortType);
+    setSortOrder(newSortOrder);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sortBy", newSortType);
+    params.set("sortOrder", newSortOrder);
+    router.push(`?${params.toString()}`, { scroll: false });
+    fetchFictions(params.toString());
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="mb-8 flex">
-        <Input
-          placeholder="Tìm kiếm truyện"
-          className="w-full"
-          icon={<MagnifyingGlassIcon className="w-4 h-4" />}
-          value={searchTerm}
-          onChange={(e) => {
-            const value = e.target.value;
-            setSearchTerm(value);
-            handleSearch(value);
-          }}
-          onClear={handleClearSearch}
-          showClearButton={searchTerm !== ""}
+      <div className="mb-8 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto space-y-2 sm:space-y-0 sm:space-x-2">
+          <div className="w-full sm:w-64 md:w-80">
+            <Input
+              placeholder="Search for fictions"
+              className="w-full"
+              icon={<MagnifyingGlassIcon className="w-4 h-4" />}
+              value={searchTerm}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchTerm(value);
+                handleSearch(value);
+              }}
+              onClear={handleClearSearch}
+              showClearButton={searchTerm !== ""}
+            />
+          </div>
+          <button
+            onClick={handleOpenFilterModal}
+            className="inline-flex items-center justify-center px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 h-[38px] sm:h-[40px]"
+          >
+            <i className="fas fa-filter"></i>
+            Filter
+          </button>
+        </div>
+        <SortSelector
+          sortType={sortType}
+          sortOrder={sortOrder}
+          onSortChange={handleSortChange}
         />
-        <Button
-          onClick={handleOpenFilterModal}
-          className="ml-2"
-          variant="outlined"
-        >
-          <i className="fas fa-filter mr-2"></i>
-          Bộ lọc
-        </Button>
       </div>
 
       <CurrentFilters
@@ -199,8 +223,10 @@ export const FictionList: React.FC = () => {
         isOpen={isFilterModalOpen}
         onClose={handleCloseFilterModal}
         className="w-3/4 max-w-4xl"
+        title="Advanced Filter"
       >
         <AdvancedFilter
+          initialFilters={searchParams}
           onApply={handleApplyFilter}
           onClose={handleCloseFilterModal}
           tags={tags}
