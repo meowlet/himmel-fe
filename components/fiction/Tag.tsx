@@ -23,7 +23,7 @@ export const Tag: React.FC<TagProps> = ({
       title={description}
       onClick={() => {
         console.log(`Tag clicked: ${code}`);
-        router.push(`/tags/${code}`);
+        router.push(`/tag/${code}`);
       }}
     >
       {name}
