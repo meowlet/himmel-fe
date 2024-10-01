@@ -36,20 +36,15 @@ export default function PremiumPage() {
         credentials: "include",
       });
 
-      if (!response.ok) {
-        throw new Error("Lỗi khi đăng ký Premium");
-      }
-
       const result = await response.json();
 
-      if (result.status === "success" && result.data.redirectUrl) {
-        window.location.href = result.data.redirectUrl;
+      if (result.status === "success" && result.data.paymentUrl) {
+        window.location.href = result.data.paymentUrl;
       } else {
-        throw new Error("Không nhận được URL chuyển hướng");
+        alert(result.error.details);
       }
     } catch (error) {
       console.error("Lỗi khi đăng ký Premium:", error);
-      alert("Đã xảy ra lỗi khi đăng ký Premium. Vui lòng thử lại.");
     }
   };
 
