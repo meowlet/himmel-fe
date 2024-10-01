@@ -8,8 +8,9 @@ import {
   GifIcon,
   GiftIcon,
 } from "@heroicons/react/24/solid";
-import { Fiction, Tag, User } from "@/types/Fiction";
+import { Chapter, Fiction, Tag, User } from "@/types/Fiction";
 import { Tag as TagComponent } from "./Tag";
+import { ChapterList } from "./ChapterList";
 
 interface FictionInfoProps {
   fiction: Fiction;
@@ -17,8 +18,10 @@ interface FictionInfoProps {
 
 export const FictionInfo: React.FC<FictionInfoProps> = ({ fiction }) => (
   <div>
-    <h1 className="text-3xl font-bold mb-4">{fiction.title}</h1>
-    <p className="text-gray-600 mb-4">{fiction.description}</p>
+    <h1 className="text-light-onSurface text-3xl font-bold mb-4">
+      {fiction.title}
+    </h1>
+    <p className="text-light-onSurfaceVariant mb-4">{fiction.description}</p>
     <div className="flex items-center mb-4">
       <span className="font-semibold mr-2">Author:</span>
       <span>{(fiction.author as User).username}</span>
@@ -80,9 +83,14 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({ fiction }) => (
         <span>{fiction.stats.commentCount} comments</span>
       </div>
     </div>
-    <div className="text-sm text-gray-500">
+    <div className="text-sm text-light-onSurfaceVariant">
       <p>Created at: {new Date(fiction.createdAt).toLocaleDateString()}</p>
       <p>Updated at: {new Date(fiction.updatedAt).toLocaleDateString()}</p>
     </div>
+
+    <ChapterList
+      chapters={fiction.chapters as Chapter[]}
+      isPremiumFiction={fiction.type === "premium"}
+    />
   </div>
 );
