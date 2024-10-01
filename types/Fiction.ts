@@ -12,6 +12,7 @@ export interface Fiction {
     averageRating: number;
     commentCount: number;
   };
+  chapters?: string[] | Chapter[];
   createdAt: string;
   updatedAt: string;
 }
@@ -35,4 +36,13 @@ export interface Tag {
   code: string;
   description: string;
   workCount: number;
+}
+
+export interface Chapter {
+  _id: string;
+  fiction: string | Fiction;
+  chapterIndex: number;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
 }
