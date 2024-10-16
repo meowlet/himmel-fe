@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Fiction, User } from "@/types/Fiction";
 import { Constant } from "@/util/Constant";
 import { Util } from "@/util/Util";
-import { Input } from "@/components/common/Input";
+import { Demo, Input } from "@/components/common/Input";
 import { Button } from "@/components/common/Button";
 import { FictionCard } from "@/components/fiction/FictionCard";
 import { AdvancedFilter } from "./AdvancedFilter";
@@ -158,6 +158,8 @@ export const FictionList: React.FC = () => {
     router.push(`?${params.toString()}`, { scroll: false });
     fetchFictions(params.toString());
   };
+
+  const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   const handleSortChange = (
     newSortType: SortType,

@@ -11,6 +11,15 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   showClearButton?: boolean;
 }
 
+interface DemoProps {
+  label: string;
+  placeholder: string;
+}
+
+export const Demo: React.FC<DemoProps> = ({ label, placeholder }) => {
+  return <input type="text" placeholder={placeholder} />;
+};
+
 export const Input: React.FC<InputProps> = ({
   label,
   error,
