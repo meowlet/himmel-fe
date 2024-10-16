@@ -27,7 +27,7 @@ export const Header: React.FC = () => {
       const data = await response.json();
 
       if (data.status === "success") {
-        setUsername(data.data.username);
+        setUsername(data.data.fullName || data.data.username);
       } else if (data.error?.type === "INVALID_TOKEN") {
         const refreshResponse = await fetch(
           Constant.API_URL + "/auth/refresh",
@@ -45,7 +45,7 @@ export const Header: React.FC = () => {
           const retryData = await retryResponse.json();
 
           if (retryData.status === "success") {
-            setUsername(retryData.data.username);
+            setUsername(retryData.data.fullName || retryData.data.username);
           } else {
             throw new Error(
               "Không thể lấy thông tin người dùng sau khi làm mới token"
@@ -93,7 +93,7 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-light-surface shadow-md fixed top-0 left-0 right-0 z-50">
+    <header className="bg-light-surface shadow-md fixed top-0 left-0 right-0 z-50 nav-bar">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Logo />
         <nav>
