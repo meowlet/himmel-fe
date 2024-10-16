@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Constant } from "@/util/Constant";
 
 interface ChapterListProps {
+  fictionId: string;
   chapters: Chapter[];
   isPremiumFiction: boolean;
 }
@@ -158,16 +159,24 @@ interface ChapterItemProps {
 }
 
 export const ChapterItem: React.FC<ChapterItemProps> = ({ chapter }) => {
+  const router = useRouter();
+
+  const handleChapterClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    router.push(`/fiction/${chapter.fiction}/chapter/${chapter._id}`, {});
+  };
+
   return (
-    <Link href={`/chapter/${chapter._id}`} className="block">
-      <div className="p-4 border rounded-lg hover:bg-light-secondary-container hover:text-light-onSecondaryContainer transition-colors">
-        <h3 className="text-lg font-semibold">
-          Chapter {chapter.chapterIndex}: {chapter.title}
-        </h3>
-        <p className="text-sm text-gray-600">
-          Updated: {new Date(chapter.updatedAt).toLocaleDateString()}
-        </p>
-      </div>
-    </Link>
+    <div
+      onClick={handleChapterClick}
+      className="p-4 border rounded-lg hover:bg-light-secondary-container hover:text-light-onSecondaryContainer transition-colors cursor-pointer"
+    >
+      <h3 className="text-lg font-semibold">
+        Chapter {chapter.chapterIndex}: {chapter.title}
+      </h3>
+      <p className="text-sm text-gray-600">
+        Updated: {new Date(chapter.updatedAt).toLocaleDateString()}
+      </p>
+    </div>
   );
 };

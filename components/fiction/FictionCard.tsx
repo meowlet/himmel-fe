@@ -26,6 +26,7 @@ export const FictionCard: React.FC<FictionCardProps> = ({
     start: false,
     end: false,
   });
+  const [imageError, setImageError] = useState(false);
   const tagsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,12 +70,21 @@ export const FictionCard: React.FC<FictionCardProps> = ({
         className="relative h-48 w-full cursor-pointer"
         onClick={handleTitleClick}
       >
-        <Image
-          src={Constant.API_URL + "/fiction/" + fiction._id + "/cover"}
-          alt={fiction.title}
-          layout="fill"
-          objectFit="cover"
-        />
+        {!imageError ? (
+          <Image
+            src={Constant.API_URL + "/fiction/" + fiction._id + "/cover"}
+            alt={fiction.title}
+            layout="fill"
+            objectFit="cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="w-full h-full bg-light-error-container flex items-center justify-center">
+            <p className="text-light-onErrorContainer text-center text-lg font-bold">
+              This fiction has no cover image
+            </p>
+          </div>
+        )}
       </div>
       <div className="p-4">
         <h3
