@@ -1,13 +1,13 @@
 "use client"; // Thêm dòng này ở đầu file
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/common/Input";
 import { Button } from "@/components/common/Button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { Constant } from "@/util/Constant";
-
+import { generateNonce } from "./SignUpform";
 const signInSchema = z.object({
   identifier: z.string().min(1, "Username or email is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -19,21 +19,28 @@ export const SignInForm: React.FC = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [successMessage, setSuccessMessage] = useState(""); // Thêm state mới
+  const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    // Load Google Sign-In API
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    setSuccessMessage(""); // Đặt lại thông báo thành công
+    setSuccessMessage("");
 
     try {
       const data = signInSchema.parse({ identifier, password });
-
-      const requestBody = {
-        identifier: data.identifier,
-        password: data.password,
-        ...(rememberMe && { rememberMe: rememberMe }), // Thêm field rememberMe nếu được tick
-      };
 
       const response = await fetch(Constant.API_URL + "/auth/sign-in", {
         method: "POST",
@@ -41,22 +48,27 @@ export const SignInForm: React.FC = () => {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          identifier: data.identifier,
+          password: data.password,
+          rememberMe: rememberMe,
+        }),
       });
-
-      console.log(requestBody);
 
       const result = await response.json();
 
       if (result.status === "success") {
-        localStorage.setItem("accessToken", result.data.accessToken);
-        localStorage.setItem("refreshToken", result.data.refreshToken);
         setSuccessMessage("Sign in successfully, redirecting...");
+        // Lưu token vào localStorage hoặc cookie nếu cần
+        localStorage.setItem("accessToken", result.data.accessToken);
+        if (result.data.refreshToken) {
+          localStorage.setItem("refreshToken", result.data.refreshToken);
+        }
         setTimeout(() => {
           router.push("/dashboard");
         }, 2000);
       } else {
-        setErrors({ root: result.error.details || "Something went wrong" });
+        setErrors({ root: result.error.details || "Sign in failed" });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -71,6 +83,21 @@ export const SignInForm: React.FC = () => {
         setErrors({ root: "Something went wrong" });
       }
     }
+  };
+
+  const handleGoogleSignIn = () => {
+    const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+    const redirectUri = window.location.origin + "/auth/google-callback";
+
+    const params = new URLSearchParams({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      redirect_uri: redirectUri,
+      response_type: "id_token",
+      scope: "openid email profile",
+      nonce: generateNonce(), // Hàm tạo nonce ngẫu nhiên
+    });
+
+    window.location.href = `${googleAuthUrl}?${params.toString()}`;
   };
 
   return (
@@ -140,6 +167,15 @@ export const SignInForm: React.FC = () => {
       <Button type="submit" className="w-full">
         Sign in
       </Button>
+
+      <Button
+        variant="outlined"
+        onClick={handleGoogleSignIn}
+        className="w-full"
+      >
+        Continue with Google
+      </Button>
+
       <div className="text-center">
         <p className="text-sm text-light-onSurfaceVariant">
           Don't have an account?{" "}
