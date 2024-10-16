@@ -26,6 +26,21 @@ export const SignUpForm: React.FC = () => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [successMessage, setSuccessMessage] = useState(""); // Thêm state mới
 
+  const handleGoogleSignUp = () => {
+    const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+    const redirectUri = window.location.origin + "/auth/google-callback";
+
+    const params = new URLSearchParams({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      redirect_uri: redirectUri,
+      response_type: "id_token",
+      scope: "openid email profile",
+      nonce: generateNonce(), // Hàm tạo nonce ngẫu nhiên
+    });
+
+    window.location.href = `${googleAuthUrl}?${params.toString()}`;
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
@@ -147,6 +162,13 @@ export const SignUpForm: React.FC = () => {
       <Button type="submit" className="w-full">
         Sign up
       </Button>
+      <Button
+        variant="outlined"
+        onClick={handleGoogleSignUp}
+        className="w-full"
+      >
+        Continue with Google
+      </Button>
       <div className="text-center">
         <p className="text-sm text-light-onSurfaceVariant">
           Already have an account?{" "}
@@ -161,3 +183,9 @@ export const SignUpForm: React.FC = () => {
     </form>
   );
 };
+export function generateNonce(): string {
+  return (
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  );
+}
