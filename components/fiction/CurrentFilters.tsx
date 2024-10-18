@@ -47,7 +47,7 @@ export const CurrentFilters: React.FC<CurrentFiltersProps> = ({
                     key={authorId}
                     className="bg-light-primary-container text-light-onPrimaryContainer rounded-full px-3 py-1 text-sm"
                   >
-                    {author ? author.username : authorId}
+                    {author?.fullName ? author.fullName : author?.username}
                   </span>
                 );
               })}
