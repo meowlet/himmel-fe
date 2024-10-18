@@ -11,23 +11,34 @@ export interface Fiction {
     ratingCount: number;
     averageRating: number;
     commentCount: number;
+    favoriteCount: number;
   };
   chapters?: string[] | Chapter[];
   createdAt: string;
   updatedAt: string;
 }
 
+interface ReadingHistory {
+  chapter: string | Chapter;
+  lastReadPage: number;
+  lastReadTime: Date;
+}
+
 export interface User {
   _id: string;
   username: string;
+  fullName: string;
   email: string;
   passwordHash: string;
   isPremium: boolean;
   premiumExpiryDate: string | null;
   favoriteTags: string[];
+  bookmarks: string[] | Chapter[];
   createdAt: string;
   updatedAt: string;
   bio: string | null;
+  favorites: string[] | Fiction[];
+  readingHistory: ReadingHistory[];
 }
 
 export interface Tag {

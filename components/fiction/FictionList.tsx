@@ -18,6 +18,7 @@ import {
 import Pagination from "../common/Pagination";
 import { CurrentFilters } from "./CurrentFilters";
 import { SortSelector, SortType } from "./SortSelector";
+import { Suspense } from "react";
 
 interface Tag {
   _id: string;
@@ -27,7 +28,8 @@ interface Tag {
   workCount: number;
 }
 
-export const FictionList: React.FC = () => {
+// Tạo một component mới để xử lý logic chính
+const FictionListContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -159,8 +161,6 @@ export const FictionList: React.FC = () => {
     fetchFictions(params.toString());
   };
 
-  const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
   const handleSortChange = (
     newSortType: SortType,
     newSortOrder: "asc" | "desc"
@@ -177,11 +177,11 @@ export const FictionList: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
-        <div className="flex flex-col sm:flex-row w-full sm:w-auto space-y-2 sm:space-y-0 sm:space-x-2">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto space-y-2 sm:space-y-0 sm:space-x-2 sm:items-center">
           <div className="w-full sm:w-64 md:w-80">
             <Input
               placeholder="Search for fictions"
-              className="w-full"
+              className="w-full h-10"
               icon={<MagnifyingGlassIcon className="w-4 h-4" />}
               value={searchTerm}
               onChange={(e) => {
@@ -195,9 +195,9 @@ export const FictionList: React.FC = () => {
           </div>
           <button
             onClick={handleOpenFilterModal}
-            className="inline-flex items-center justify-center px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 h-[38px] sm:h-[40px]"
+            className="inline-flex items-center justify-center px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 h-10"
           >
-            <i className="fas fa-filter"></i>
+            <i className="fas fa-filter mr-2"></i>
             Filter
           </button>
         </div>
@@ -243,5 +243,14 @@ export const FictionList: React.FC = () => {
         onItemsPerPageChange={handleItemsPerPageChange}
       />
     </div>
+  );
+};
+
+// Component chính được bọc bởi Suspense
+export const FictionList: React.FC = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FictionListContent />
+    </Suspense>
   );
 };
