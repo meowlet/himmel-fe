@@ -32,26 +32,26 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const baseInputClasses =
-    "w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-light-primary transition-all duration-200";
+    "w-full px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-light-primary transition-all duration-200";
   const variantClasses = {
     outlined: "bg-transparent border border-light-outline text-light-onSurface",
     filled: "bg-light-surfaceVariant text-light-onSurfaceVariant",
   };
 
   return (
-    <div className="mb-4">
+    <div className="input-container">
       {label && (
         <label className="block text-light-onSurface mb-2 text-sm font-medium">
           {label}
         </label>
       )}
-      <div className="relative">
+      <div className="relative flex items-center h-10">
         <input
           className={`${baseInputClasses} ${variantClasses[variant]} ${
             error ? "border-light-error" : ""
           } ${icon ? "pl-10" : ""} ${
             showClearButton ? "pr-10" : ""
-          } ${className}`}
+          } ${className} h-full`}
           {...props}
         />
         {icon && (

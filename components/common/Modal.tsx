@@ -1,4 +1,5 @@
 import React, { ReactNode } from "react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface ModalProps {
   isOpen: boolean;
@@ -24,25 +25,21 @@ export const Modal: React.FC<ModalProps> = ({
         onClick={onClose}
       ></div>
       <div
-        className={`relative w-full sm:w-auto mx-auto my-6 z-50 ${className}`}
+        className={`relative w-full max-w-[90vw] sm:max-w-[80vw] md:max-w-[70vw] lg:max-w-[60vw] mx-auto my-6 z-50 ${className}`}
       >
-        <div className="relative flex flex-col w-full bg-light-surface border-0 rounded-lg shadow-lg outline-none focus:outline-none max-h-[90vh] max-w-[90vw] sm:max-w-[80vw] md:max-w-[70vw] lg:max-w-[60vw]">
-          <div className="flex items-start justify-between p-4 sm:p-5 border-b border-solid border-light-outline">
+        <div className="relative flex flex-col w-full bg-light-surface border-0 rounded-lg shadow-lg outline-none focus:outline-none max-h-[90vh]">
+          <div className="flex items-center justify-between p-4 sm:p-5 border-b border-solid border-light-outline">
             <h3 className="text-xl sm:text-2xl font-semibold text-light-onSurface">
               {title}
             </h3>
             <button
-              className="p-1 ml-auto bg-transparent border-0 text-light-onSurfaceVariant float-right text-2xl sm:text-3xl leading-none font-semibold outline-none focus:outline-none"
+              className="p-1 bg-transparent border-0 text-light-onSurfaceVariant hover:text-light-onSurface transition-colors duration-200 ease-in-out outline-none focus:outline-none"
               onClick={onClose}
             >
-              <span className="bg-transparent text-light-onSurfaceVariant h-6 w-6 block outline-none focus:outline-none">
-                ×
-              </span>
+              <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
-          <div className="sm:p-6 overflow-y-auto scrollbar-hide">
-            {children}
-          </div>
+          <div className="flex-grow overflow-y-auto">{children}</div>
         </div>
       </div>
     </div>
