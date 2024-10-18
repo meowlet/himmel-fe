@@ -8,6 +8,9 @@ import Image from "next/image";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 import fetchWithAuth from "@/util/Fetcher";
+import Pagination from "../common/Pagination";
+import { SortType } from "./SortSelector";
+import Select from "react-select";
 
 interface Comment {
   _id: string;
@@ -34,24 +37,55 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isUserSignedIn, setIsUserSignedIn] = useState(false);
+  const [sortType, setSortType] = useState<SortType>(SortType.CREATED_AT);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const router = useRouter();
+
+  const sortComments = (commentsToSort: Comment[]) => {
+    return [...commentsToSort].sort((a, b) => {
+      switch (sortType) {
+        case SortType.CREATED_AT:
+          return sortOrder === "desc"
+            ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case SortType.LIKES:
+          return sortOrder === "desc"
+            ? b.likes.length - a.likes.length
+            : a.likes.length - b.likes.length;
+        case SortType.DISLIKES:
+          return sortOrder === "desc"
+            ? b.dislikes.length - a.dislikes.length
+            : a.dislikes.length - b.dislikes.length;
+        default:
+          return 0;
+      }
+    });
+  };
 
   useEffect(() => {
     fetchComments();
     fetchCurrentUser();
-  }, [fictionId]);
+  }, [fictionId, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setComments(sortComments(comments));
+  }, [sortType, sortOrder]);
 
   const fetchComments = async () => {
     try {
       const response = await fetchWithAuth(
-        `${Constant.API_URL}/interaction/${fictionId}/comments`,
+        `${Constant.API_URL}/interaction/${fictionId}/comments?page=${currentPage}&limit=${itemsPerPage}`,
         {
           credentials: "include",
         }
       );
       const data = await response.json();
       if (data.status === "success") {
-        setComments(data.data.comments);
+        setComments(sortComments(data.data.comments));
+        setTotalPages(Math.ceil(data.data.total / itemsPerPage));
       }
     } catch (error) {
       console.error("Failed to fetch comments:", error);
@@ -146,6 +180,29 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     router.push("/sign-in");
   };
 
+  const handleSortChange = (
+    newSortType: SortType,
+    newSortOrder: "asc" | "desc"
+  ) => {
+    setSortType(newSortType);
+    setSortOrder(newSortOrder);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+  };
+
+  const sortOptions = [
+    { value: SortType.CREATED_AT, label: "Lastest" },
+    { value: SortType.LIKES, label: "Most likes" },
+    { value: SortType.DISLIKES, label: "Most dislikes" },
+  ];
+
   return (
     <div className="mt-8 relative">
       <h2 className="text-2xl font-bold mb-4">Bình luận</h2>
@@ -180,6 +237,23 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           </button>
         )}
       </form>
+
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-4">
+          <Select
+            options={sortOptions}
+            value={
+              sortOptions.find((option) => option.value === sortType) || null
+            }
+            onChange={(selectedOption) => {
+              if (selectedOption) {
+                handleSortChange(selectedOption.value, sortOrder);
+              }
+            }}
+          />
+        </div>
+      </div>
+
       <div className="space-y-4">
         {comments.map((comment) => (
           <div
@@ -237,6 +311,13 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           </div>
         ))}
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handleItemsPerPageChange}
+      />
     </div>
   );
 };

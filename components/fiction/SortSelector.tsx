@@ -7,6 +7,8 @@ export enum SortType {
   UPDATED_AT = "updatedAt",
   VIEW_COUNT = "viewCount",
   AVERAGE_RATING = "averageRating",
+  LIKES = "likes",
+  DISLIKES = "dislikes",
 }
 
 type SortOption = {
