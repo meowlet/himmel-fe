@@ -96,91 +96,93 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
   ];
   const userOptions = users.map((user) => ({
     value: user._id,
-    label: user.username,
+    label: user.fullName ? user.fullName : user.username,
   }));
 
   return (
-    <div className="p-6 bg-light-surface text-light-onSurface rounded-lg">
-      <div className="grid grid-cols-1 gap-4">
-        <div className="w-full">
-          <label className="block text-sm font-medium text-light-onSurfaceVariant mb-1">
-            Author
-          </label>
-          <Select
-            name="author"
-            options={userOptions}
-            className="basic-select bg-light-surfaceVariant"
-            classNamePrefix="select"
-            onChange={handleSelectChange("author")}
-            value={userOptions.find(
-              (option) => option.value === filterParams.author
-            )}
+    <div className="flex flex-col h-full bg-light-surface text-light-onSurface rounded-lg">
+      <div className="flex-grow overflow-y-auto p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="w-full">
+            <label className="block text-sm font-medium text-light-onSurfaceVariant mb-1">
+              Author
+            </label>
+            <Select
+              name="author"
+              options={userOptions}
+              className="basic-select bg-light-surfaceVariant"
+              classNamePrefix="select"
+              onChange={handleSelectChange("author")}
+              value={userOptions.find(
+                (option) => option.value === filterParams.author
+              )}
+            />
+          </div>
+          <div className="w-full">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tags
+            </label>
+            <Select
+              isMulti
+              name="tags"
+              options={tagOptions}
+              className="basic-multi-select w-full"
+              classNamePrefix="select"
+              onChange={handleMultiSelectChange("tags")}
+              value={tagOptions.filter((option) =>
+                filterParams.tags.includes(option.value)
+              )}
+            />
+          </div>
+          <div className="w-full">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fiction Type
+            </label>
+            <Select
+              name="type"
+              options={typeOptions}
+              className="basic-select w-full"
+              classNamePrefix="select"
+              onChange={handleSelectChange("type")}
+              value={typeOptions.find(
+                (option) => option.value === filterParams.type
+              )}
+            />
+          </div>
+          <div className="w-full">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <Select
+              name="status"
+              options={statusOptions}
+              className="basic-select w-full"
+              classNamePrefix="select"
+              onChange={handleSelectChange("status")}
+              value={statusOptions.find(
+                (option) => option.value === filterParams.status
+              )}
+            />
+          </div>
+          <Input
+            label="From Date"
+            name="createdFrom"
+            type="date"
+            value={filterParams.createdFrom}
+            onChange={handleInputChange}
+            className="w-full"
+          />
+          <Input
+            label="To Date"
+            name="createdTo"
+            type="date"
+            value={filterParams.createdTo}
+            onChange={handleInputChange}
+            className="w-full"
           />
         </div>
-        <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tags
-          </label>
-          <Select
-            isMulti
-            name="tags"
-            options={tagOptions}
-            className="basic-multi-select w-full"
-            classNamePrefix="select"
-            onChange={handleMultiSelectChange("tags")}
-            value={tagOptions.filter((option) =>
-              filterParams.tags.includes(option.value)
-            )}
-          />
-        </div>
-        <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Fiction Type
-          </label>
-          <Select
-            name="type"
-            options={typeOptions}
-            className="basic-select w-full"
-            classNamePrefix="select"
-            onChange={handleSelectChange("type")}
-            value={typeOptions.find(
-              (option) => option.value === filterParams.type
-            )}
-          />
-        </div>
-        <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Status
-          </label>
-          <Select
-            name="status"
-            options={statusOptions}
-            className="basic-select w-full"
-            classNamePrefix="select"
-            onChange={handleSelectChange("status")}
-            value={statusOptions.find(
-              (option) => option.value === filterParams.status
-            )}
-          />
-        </div>
-        <Input
-          label="From Date"
-          name="createdFrom"
-          type="date"
-          value={filterParams.createdFrom}
-          onChange={handleInputChange}
-          className="w-full"
-        />
-        <Input
-          label="To Date"
-          name="createdTo"
-          type="date"
-          value={filterParams.createdTo}
-          onChange={handleInputChange}
-          className="w-full"
-        />
       </div>
-      <div className="flex justify-end mt-4">
+      <div className="flex justify-end p-4 border-t border-light-outline">
         <Button
           onClick={onClose}
           variant="outlined"
