@@ -3,16 +3,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Constant } from "@/util/Constant";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  ArrowsPointingInIcon,
-  ArrowsPointingOutIcon,
-  ArrowTurnDownRightIcon,
-  ArrowTurnRightDownIcon,
+  ChevronUpIcon,
+  ChevronDoubleLeftIcon,
+  ChevronDoubleRightIcon,
+  ArrowsUpDownIcon,
+  ArrowsRightLeftIcon,
 } from "@heroicons/react/24/solid";
 import { Button } from "@/components/common/Button";
+import fetchWithAuth from "@/util/Fetcher";
+import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
+import { BookmarkIcon as BookmarkOutlineIcon } from "@heroicons/react/24/outline";
 
 interface ChapterData {
   _id: string;
@@ -27,6 +31,7 @@ interface FictionData {
 }
 
 const ReaderPage: React.FC = () => {
+  const router = useRouter();
   const { fictionId, chapterId } = useParams();
   const [chapterData, setChapterData] = useState<ChapterData | null>(null);
   const [fictionData, setFictionData] = useState<FictionData | null>(null);
@@ -41,9 +46,13 @@ const ReaderPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTopBar, setShowTopBar] = useState(false);
+  const [currentScrollPage, setCurrentScrollPage] = useState(1);
+  const [allImagesLoaded, setAllImagesLoaded] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
+    checkBookmarkStatus();
   }, []);
 
   useEffect(() => {
@@ -79,9 +88,37 @@ const ReaderPage: React.FC = () => {
     }
   }, [chapterData]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!isHorizontal && containerRef.current) {
+        const images = containerRef.current.querySelectorAll("img");
+        const scrollPosition = window.scrollY + window.innerHeight / 2;
+
+        for (let i = 0; i < images.length; i++) {
+          const image = images[i];
+          const { top, bottom } = image.getBoundingClientRect();
+          const imageMiddle = (top + bottom) / 2 + window.scrollY;
+
+          if (scrollPosition >= imageMiddle) {
+            setCurrentScrollPage(i + 1);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isHorizontal]);
+
+  useEffect(() => {
+    if (allImagesLoaded) {
+      incrementViewCount();
+    }
+  }, [allImagesLoaded]);
+
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch(`${Constant.API_URL}/me`, {
+      const response = await fetchWithAuth(`${Constant.API_URL}/me`, {
         credentials: "include",
       });
       const data = await response.json();
@@ -101,39 +138,47 @@ const ReaderPage: React.FC = () => {
   ) => {
     setIsLoading(true);
     try {
-      if (!chapterData || !fictionData || !isUserPremium) return;
+      console.log("Fetching images...");
+      if (!chapterData || !fictionData) {
+        console.log("Missing chapter or fiction data");
+        return;
+      }
 
       const imageUrls = [];
       const blobs = [];
+      const isPremiumContent = fictionData.type === "premium" && isUserPremium;
+
       for (let i = 1; i <= chapterData.pageCount; i++) {
-        const url =
-          fictionData.type === "premium"
-            ? `${Constant.API_URL}/fiction/${fictionId}/premium-chapter/${chapterId}/${i}`
-            : `${Constant.API_URL}/fiction/${fictionId}/chapter/${chapterId}/${i}`;
+        const url = isPremiumContent
+          ? `${Constant.API_URL}/fiction/${fictionId}/premium-chapter/${chapterId}/${i}`
+          : `${Constant.API_URL}/fiction/${fictionId}/chapter/${chapterId}/${i}`;
+
         imageUrls.push(url);
 
-        if (fictionData.type === "premium") {
-          try {
-            const response = await fetch(url, {
-              credentials: "include",
-              cache: "no-store",
-            });
-            if (!response.ok) {
-              throw new Error("Failed to load image");
-            }
-            const blob = await response.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            blobs.push(blobUrl);
-          } catch (error) {
-            console.error("Error loading premium image:", error);
-            blobs.push(""); // Thêm URL trống nếu có lỗi
+        try {
+          const response = await fetch(url, {
+            credentials: isPremiumContent ? "include" : "omit",
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            throw new Error("Failed to load image");
           }
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          blobs.push(blobUrl);
+        } catch (error) {
+          console.error(
+            `Error loading ${isPremiumContent ? "premium" : "free"} image:`,
+            error
+          );
+          blobs.push("");
         }
       }
+
+      console.log("Image URLs:", imageUrls);
       setImages(imageUrls);
-      if (fictionData.type === "premium") {
-        setImageBlobs(blobs);
-      }
+      setImageBlobs(blobs);
+      setAllImagesLoaded(true); // Set this to true after all images are loaded
     } catch (error) {
       console.error("Error loading images:", error);
     } finally {
@@ -141,9 +186,34 @@ const ReaderPage: React.FC = () => {
     }
   };
 
+  const incrementViewCount = async () => {
+    try {
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/fiction/${fictionId}/increment-view`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to increment view count");
+      }
+      console.log("View count incremented successfully");
+    } catch (error) {
+      console.error("Error incrementing view count:", error);
+    }
+  };
+
   const toggleBars = () => {
     setShowBar(!showBar);
     setShowTopBar(!showTopBar);
+  };
+
+  const handleBackToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const handleImageClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -206,51 +276,111 @@ const ReaderPage: React.FC = () => {
     }
   };
 
+  const handleBackToFiction = () => {
+    router.push(`/fiction/${fictionId}`);
+  };
+
+  const handleBackToTopOrFirst = () => {
+    if (isHorizontal) {
+      setCurrentPage(1);
+    } else {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const handleFirstPage = () => {
+    setCurrentPage(1);
+  };
+
+  const handleLastPage = () => {
+    if (chapterData) {
+      setCurrentPage(chapterData.pageCount);
+    }
+  };
+
+  const checkBookmarkStatus = async () => {
+    try {
+      const response = await fetchWithAuth(`${Constant.API_URL}/me`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      setIsBookmarked(data.data.bookmarks.includes(chapterId));
+    } catch (error) {
+      console.error("Error checking bookmark status:", error);
+    }
+  };
+
+  console.log(isBookmarked);
+
+  const handleBookmark = async () => {
+    try {
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/fiction/chapter/${chapterId}/bookmark`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+      if (response.ok) {
+        setIsBookmarked((prev) => !prev);
+      } else {
+        throw new Error("Failed to bookmark chapter");
+      }
+    } catch (error) {
+      console.error("Error bookmarking chapter:", error);
+    }
+  };
+
   if (isLoading) {
-    return <div>Đang tải...</div>;
+    return <div>Loading...</div>;
   }
 
   if (error) {
     return <div>{error}</div>;
   }
 
-  if (
-    !chapterData ||
-    images.length === 0 ||
-    (fictionData?.type === "premium" && !isUserPremium)
-  ) {
+  if (!chapterData || images.length === 0) {
+    return <div>Đang tải nội dung...</div>;
+  }
+
+  if (fictionData?.type === "premium" && !isUserPremium) {
     return <div>Nội dung này chỉ dành cho người dùng premium</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen ">
       <div
         className={`fixed top-0 left-0 right-0 bg-light-surface shadow-lg p-4 border-b border-light-outline z-10 transition-transform duration-300 ease-in-out ${
           showTopBar ? "transform translate-y-0" : "transform -translate-y-full"
         }`}
       >
         <div className="flex justify-between items-center max-w-3xl mx-auto">
+          <button
+            className="text-light-onSurface p-2 rounded-full flex-shrink-0 mr-2"
+            onClick={handleBackToFiction}
+            aria-label="Back to fiction"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+          </button>
           <div className="text-light-onSurface truncate flex-grow mr-4">
             Chapter {chapterData?.chapterIndex}
             {" - "}
             <span className="font-bold">{chapterData?.title}</span>
           </div>
-          <Button
-            variant="text"
-            onClick={toggleReadingMode}
-            className="bg-light-primary text-light-onPrimary p-2 rounded-full flex-shrink-0"
-            aria-label={
-              isHorizontal
-                ? "Switch to vertical mode"
-                : "Switch to horizontal mode"
-            }
+          <button
+            className="text-light-onSurface p-2 rounded-full flex-shrink-0"
+            onClick={handleBookmark}
+            aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
           >
-            {isHorizontal ? (
-              <ArrowTurnRightDownIcon className="h-4 w-4" />
+            {isBookmarked ? (
+              <BookmarkSolidIcon className="text-light-primary h-5 w-5" />
             ) : (
-              <ArrowTurnDownRightIcon className="h-4 w-4" />
+              <BookmarkOutlineIcon className="text-light-primary h-5 w-5" />
             )}
-          </Button>
+          </button>
         </div>
       </div>
       <div className="relative" ref={containerRef}>
@@ -292,38 +422,88 @@ const ReaderPage: React.FC = () => {
           </div>
         )}
       </div>
-      <div
-        className={`fixed bottom-0 left-0 right-0 bg-light-surface shadow-lg p-4 border-t border-light-outline z-10 transition-transform duration-300 ease-in-out ${
-          showBar ? "transform translate-y-0" : "transform translate-y-full"
-        }`}
-      >
-        <div className="flex justify-between items-center max-w-3xl mx-auto">
-          <button
-            onClick={handlePrevChapter}
-            className="bg-light-primary text-light-onPrimary px-4 py-2 rounded-full mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={
-              !fictionData ||
-              !chapterData ||
-              fictionData.chapters[0]._id === chapterData._id
+      <div className="fixed bottom-0 left-0 right-0 z-10">
+        <div
+          className={`flex justify-between px-4 mb-2 transition-opacity duration-300 ${
+            showBar ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <Button
+            variant="text"
+            onClick={toggleReadingMode}
+            aria-label={
+              isHorizontal
+                ? "Chuyển sang chế độ đọc dọc"
+                : "Chuyển sang chế độ đọc ngang"
             }
           >
-            <ArrowLeftIcon className="h-6 w-6" />
-          </button>
-          <div className="text-light-onSurface">
-            Page {currentPage} / {chapterData?.pageCount}
+            {isHorizontal ? (
+              <ArrowsUpDownIcon className="h-6 w-6" />
+            ) : (
+              <ArrowsRightLeftIcon className="h-6 w-6" />
+            )}
+          </Button>
+          {!isHorizontal && (
+            <Button
+              variant="text"
+              onClick={handleBackToTop}
+              className="bg-light-primary text-light-onPrimary p-2 rounded-full"
+              aria-label="Quay lại đầu trang"
+            >
+              <ChevronUpIcon className="h-6 w-6" />
+            </Button>
+          )}
+        </div>
+        <div
+          className={`bg-light-surface shadow-lg p-4 border-t border-light-outline transition-transform duration-300 ease-in-out ${
+            showBar ? "transform translate-y-0" : "transform translate-y-full"
+          }`}
+        >
+          <div className="flex justify-between items-center max-w-3xl mx-auto">
+            <button
+              onClick={handlePrevChapter}
+              className="bg-light-primary text-light-onPrimary px-4 py-2 rounded-full mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={
+                !fictionData ||
+                !chapterData ||
+                fictionData.chapters[0]._id === chapterData._id
+              }
+            >
+              <ArrowLeftIcon className="h-6 w-6" />
+            </button>
+            {isHorizontal && (
+              <button
+                onClick={handleFirstPage}
+                className="bg-light-tertiary-container text-light-onTertiaryContainer px-4 py-2 rounded-full mr-2"
+              >
+                <ChevronDoubleLeftIcon className="h-6 w-6" />
+              </button>
+            )}
+            <div className="text-light-onSurface">
+              Page {isHorizontal ? currentPage : currentScrollPage} /{" "}
+              {chapterData?.pageCount}
+            </div>
+            {isHorizontal && (
+              <button
+                onClick={handleLastPage}
+                className="bg-light-tertiary-container text-light-onTertiaryContainer px-4 py-2 rounded-full ml-2"
+              >
+                <ChevronDoubleRightIcon className="h-6 w-6" />
+              </button>
+            )}
+            <button
+              onClick={handleNextChapter}
+              className="bg-light-primary text-light-onPrimary px-4 py-2 rounded-full ml-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={
+                !fictionData ||
+                !chapterData ||
+                fictionData.chapters[fictionData.chapters.length - 1]._id ===
+                  chapterData._id
+              }
+            >
+              <ArrowRightIcon className="h-6 w-6" />
+            </button>
           </div>
-          <button
-            onClick={handleNextChapter}
-            className="bg-light-primary text-light-onPrimary px-4 py-2 rounded-full ml-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={
-              !fictionData ||
-              !chapterData ||
-              fictionData.chapters[fictionData.chapters.length - 1]._id ===
-                chapterData._id
-            }
-          >
-            <ArrowRightIcon className="h-6 w-6" />
-          </button>
         </div>
       </div>
     </div>
