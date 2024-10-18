@@ -115,12 +115,11 @@ export const ChapterList: React.FC<ChapterListProps> = ({
             </div>
           </>
         )}
-        {(isPremiumFiction && !isUserSignedIn && sortedChapters.length != 0) ||
-        (isUserSignedIn && !isPremiumUser && sortedChapters.length != 0) ? (
+        {isPremiumFiction && !isPremiumUser && sortedChapters.length != 0 ? (
           <div className="absolute inset-[-20px] flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 bg-light-surface bg-opacity-70 backdrop-blur-sm" />
             <div className="relative z-10 text-center">
-              {isPremiumFiction && !isUserSignedIn ? (
+              {!isUserSignedIn ? (
                 <>
                   <p className="text-lg font-semibold mb-2">
                     This content is only available to premium users
