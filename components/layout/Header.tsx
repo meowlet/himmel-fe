@@ -65,6 +65,14 @@ export const Header: React.FC = () => {
     }
   };
 
+  const handleProfile = async () => {
+    router.push("/profile");
+  };
+
+  const handleHistory = async () => {
+    router.push("/history");
+  };
+
   const handleSignOut = async () => {
     try {
       const response = await fetch(Constant.API_URL + "/me/sign-out", {
@@ -109,7 +117,7 @@ export const Header: React.FC = () => {
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
                     <button
-                      onClick={handleSignOut}
+                      onClick={handleProfile}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       Profile
@@ -119,6 +127,12 @@ export const Header: React.FC = () => {
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       Premium
+                    </button>
+                    <button
+                      onClick={handleHistory}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      History
                     </button>
                     <button
                       onClick={handleChangePassword}
