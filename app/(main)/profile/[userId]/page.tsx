@@ -246,7 +246,7 @@ const UserProfile: React.FC = () => {
       <div className="mt-8">
         <div className="flex items-center mb-4">
           <h2 className="text-xl font-semibold text-light-onSurface">
-            Truyện yêu thích
+            Favorites
           </h2>
           <div className="flex-grow mx-4 border-t border-light-outline"></div>
         </div>
