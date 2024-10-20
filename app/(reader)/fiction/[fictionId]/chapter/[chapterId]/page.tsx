@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Constant } from "@/util/Constant";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -46,14 +46,27 @@ const ReaderPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showTopBar, setShowTopBar] = useState(false);
-  const [currentScrollPage, setCurrentScrollPage] = useState(1);
   const [allImagesLoaded, setAllImagesLoaded] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [lastSavedPage, setLastSavedPage] = useState(0);
+  const searchParams = useSearchParams();
+  const continueReading = searchParams.get("continueReading") === "true";
+  const [isReadyToScroll, setIsReadyToScroll] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
     checkBookmarkStatus();
+    if (continueReading) {
+      console.log("đang tiếp tục đọc");
+      loadReadingHistory();
+    }
   }, []);
+
+  useEffect(() => {
+    if (isReadyToScroll && !isHorizontal) {
+      scrollToLastReadPage();
+    }
+  }, [isReadyToScroll, isHorizontal]);
 
   useEffect(() => {
     if (isAuthChecked && fictionId && chapterId) {
@@ -100,7 +113,7 @@ const ReaderPage: React.FC = () => {
           const imageMiddle = (top + bottom) / 2 + window.scrollY;
 
           if (scrollPosition >= imageMiddle) {
-            setCurrentScrollPage(i + 1);
+            setCurrentPage(i + 1);
           }
         }
       }
@@ -113,8 +126,33 @@ const ReaderPage: React.FC = () => {
   useEffect(() => {
     if (allImagesLoaded) {
       incrementViewCount();
+      if (isReadyToScroll && !isHorizontal) {
+        scrollToLastReadPage();
+      }
     }
   }, [allImagesLoaded]);
+
+  useEffect(() => {
+    const saveReadingHistory = async () => {
+      if (currentPage !== lastSavedPage) {
+        await saveHistory(currentPage);
+        setLastSavedPage(currentPage);
+      }
+    };
+
+    const debouncedSave = debounce(saveReadingHistory, 2000);
+    debouncedSave();
+
+    return () => {
+      debouncedSave.clear();
+    };
+  }, [currentPage, lastSavedPage, chapterId]);
+
+  useEffect(() => {
+    if (!isHorizontal) {
+      scrollToCurrentPage();
+    }
+  }, [isHorizontal]);
 
   const checkAuthStatus = async () => {
     try {
@@ -123,7 +161,6 @@ const ReaderPage: React.FC = () => {
       });
       const data = await response.json();
       setIsUserPremium(data.data.isPremium);
-      console.log(data.data.isPremium);
     } catch (error) {
       console.error("Error checking authentication status:", error);
       setIsUserPremium(false);
@@ -175,7 +212,6 @@ const ReaderPage: React.FC = () => {
         }
       }
 
-      console.log("Image URLs:", imageUrls);
       setImages(imageUrls);
       setImageBlobs(blobs);
       setAllImagesLoaded(true); // Set this to true after all images are loaded
@@ -247,7 +283,7 @@ const ReaderPage: React.FC = () => {
   };
 
   const toggleReadingMode = () => {
-    setIsHorizontal(!isHorizontal);
+    setIsHorizontal((prev) => !prev);
   };
 
   const handlePrevChapter = () => {
@@ -276,8 +312,15 @@ const ReaderPage: React.FC = () => {
     }
   };
 
-  const handleBackToFiction = () => {
-    router.push(`/fiction/${fictionId}`);
+  const handleBackToFiction = async () => {
+    try {
+      await saveHistory(currentPage);
+      console.log("Đã lưu trang đọc hiện tại vào history");
+      router.push(`/fiction/${fictionId}`);
+    } catch (error) {
+      console.error("Lỗi khi lưu trang đọc vào history:", error);
+      router.push(`/fiction/${fictionId}`);
+    }
   };
 
   const handleBackToTopOrFirst = () => {
@@ -331,6 +374,66 @@ const ReaderPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error bookmarking chapter:", error);
+    }
+  };
+
+  const saveHistory = async (pageIndex: number) => {
+    try {
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/fiction/chapter/${chapterId}/history/${pageIndex}`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to save reading history");
+      }
+      console.log("Reading history saved successfully");
+    } catch (error) {
+      console.error("Error saving reading history:", error);
+    }
+  };
+
+  const loadReadingHistory = async () => {
+    try {
+      const response = await fetchWithAuth(`${Constant.API_URL}/me`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      const history = data.data.readingHistory;
+      const currentChapterHistory = history.find(
+        (item: any) => item.chapter === chapterId
+      );
+      if (currentChapterHistory) {
+        const lastReadPage = currentChapterHistory.lastReadPage;
+        setCurrentPage(lastReadPage);
+        setLastSavedPage(lastReadPage);
+        console.log("Trang cuối cùng đã đọc:", lastReadPage);
+        setIsReadyToScroll(true);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải lịch sử đọc:", error);
+    }
+  };
+
+  const scrollToLastReadPage = () => {
+    const images = containerRef.current?.querySelectorAll("img");
+    if (images && images[currentPage - 1]) {
+      setTimeout(() => {
+        images[currentPage - 1].scrollIntoView({ behavior: "smooth" });
+      }, 500);
+    }
+  };
+
+  const scrollToCurrentPage = () => {
+    if (!isHorizontal && containerRef.current) {
+      const images = containerRef.current.querySelectorAll("img");
+      if (images && images[currentPage - 1]) {
+        setTimeout(() => {
+          images[currentPage - 1].scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
     }
   };
 
@@ -396,6 +499,7 @@ const ReaderPage: React.FC = () => {
               layout="fill"
               objectFit="contain"
               onClick={handleImageClick}
+              loading="eager"
             />
           </div>
         ) : (
@@ -416,6 +520,7 @@ const ReaderPage: React.FC = () => {
                   width={800}
                   height={1200}
                   layout="responsive"
+                  loading="eager"
                 />
               </div>
             ))}
@@ -480,8 +585,7 @@ const ReaderPage: React.FC = () => {
               </button>
             )}
             <div className="text-light-onSurface">
-              Page {isHorizontal ? currentPage : currentScrollPage} /{" "}
-              {chapterData?.pageCount}
+              Page {currentPage} / {chapterData?.pageCount}
             </div>
             {isHorizontal && (
               <button
@@ -509,5 +613,25 @@ const ReaderPage: React.FC = () => {
     </div>
   );
 };
+
+// Helper function for debouncing
+function debounce<F extends (...args: any[]) => any>(func: F, wait: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const debouncedFunction = (...args: Parameters<F>) => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => func(...args), wait);
+  };
+
+  debouncedFunction.clear = () => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  return debouncedFunction;
+}
 
 export default ReaderPage;
