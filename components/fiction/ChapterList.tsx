@@ -3,6 +3,13 @@ import { Chapter } from "@/types/Fiction";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Constant } from "@/util/Constant";
+import { BookmarkIcon } from "@heroicons/react/24/solid";
+
+interface ReadingHistoryItem {
+  chapter: string;
+  lastReadPage: number;
+  lastReadTime: string;
+}
 
 interface ChapterListProps {
   fictionId: string;
@@ -11,20 +18,25 @@ interface ChapterListProps {
 }
 
 export const ChapterList: React.FC<ChapterListProps> = ({
+  fictionId,
   chapters,
   isPremiumFiction,
 }) => {
   const [isUserSignedIn, setIsUserSignedIn] = useState(true);
   const [isPremiumUser, setIsPremiumUser] = useState(false);
+  const [userBookmarks, setUserBookmarks] = useState<string[]>([]);
+  const [readingHistory, setReadingHistory] = useState<ReadingHistoryItem[]>(
+    []
+  );
   const [visibleChapters, setVisibleChapters] = useState(5);
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    checkPremiumStatus();
+    checkUserStatus();
   }, []);
 
-  const checkPremiumStatus = async () => {
+  const checkUserStatus = async () => {
     try {
       const response = await fetch(Constant.API_URL + "/me", {
         credentials: "include",
@@ -34,17 +46,43 @@ export const ChapterList: React.FC<ChapterListProps> = ({
       if (data.status === "success") {
         setIsPremiumUser(data.data.isPremium);
         setIsUserSignedIn(true);
+        setUserBookmarks(data.data.bookmarks || []);
+        setReadingHistory(data.data.readingHistory || []);
       } else {
         setIsUserSignedIn(false);
       }
     } catch (error) {
-      console.error("Lỗi khi kiểm tra trạng thái premium:", error);
+      console.error("Error checking user status:", error);
     }
   };
 
   const sortedChapters = [...chapters].sort(
     (a, b) => b.chapterIndex - a.chapterIndex
   );
+
+  const currentReadingChapter = readingHistory.find((item) =>
+    sortedChapters.some((chapter) => chapter._id === item.chapter)
+  );
+
+  const handleContinueReading = () => {
+    if (currentReadingChapter) {
+      const chapter = sortedChapters.find(
+        (c) => c._id === currentReadingChapter.chapter
+      );
+      if (chapter) {
+        router.push(
+          `/fiction/${fictionId}/chapter/${chapter._id}?continueReading=true`
+        );
+      }
+    }
+  };
+
+  const handleStartReading = () => {
+    const firstChapter = sortedChapters[sortedChapters.length - 1]; // Get the first chapter
+    if (firstChapter) {
+      router.push(`/fiction/${fictionId}/chapter/${firstChapter._id}`);
+    }
+  };
 
   const handlePremiumUpgrade = () => {
     router.push("/payment/premium");
@@ -72,9 +110,38 @@ export const ChapterList: React.FC<ChapterListProps> = ({
     ? sortedChapters
     : sortedChapters.slice(0, visibleChapters);
 
+  const shouldShowReadingButtons =
+    !isPremiumFiction || (isPremiumFiction && isPremiumUser);
+
   return (
     <div className="mt-8 relative">
       <h2 className="text-2xl font-bold mb-4">Chapter List</h2>
+      {shouldShowReadingButtons && (
+        <div className="mb-4 space-x-4">
+          {currentReadingChapter && (
+            <button
+              onClick={handleContinueReading}
+              className="bg-light-primary text-light-onPrimary px-4 py-2 rounded-full hover:bg-light-primaryContainer transition-colors"
+            >
+              Continue (Chapter{" "}
+              {
+                sortedChapters.find(
+                  (c) => c._id === currentReadingChapter.chapter
+                )?.chapterIndex
+              }
+              , Page {currentReadingChapter.lastReadPage})
+            </button>
+          )}
+          {sortedChapters.length > 0 && (
+            <button
+              onClick={handleStartReading}
+              className="bg-light-secondary text-light-onSecondary px-4 py-2 rounded-full hover:bg-light-secondaryContainer transition-colors"
+            >
+              Start Reading
+            </button>
+          )}
+        </div>
+      )}
       <div className="relative">
         {sortedChapters.length === 0 ? (
           <p className="text-light-onSurfaceVariant">
@@ -84,7 +151,11 @@ export const ChapterList: React.FC<ChapterListProps> = ({
           <>
             <div className="space-y-2">
               {displayedChapters.map((chapter) => (
-                <ChapterItem key={chapter._id} chapter={chapter} />
+                <ChapterItem
+                  key={chapter._id}
+                  chapter={chapter}
+                  isBookmarked={userBookmarks.includes(chapter._id)}
+                />
               ))}
             </div>
             <div className="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
@@ -155,9 +226,13 @@ export const ChapterList: React.FC<ChapterListProps> = ({
 
 interface ChapterItemProps {
   chapter: Chapter;
+  isBookmarked: boolean;
 }
 
-export const ChapterItem: React.FC<ChapterItemProps> = ({ chapter }) => {
+export const ChapterItem: React.FC<ChapterItemProps> = ({
+  chapter,
+  isBookmarked,
+}) => {
   const router = useRouter();
 
   const handleChapterClick = (e: React.MouseEvent) => {
@@ -168,14 +243,21 @@ export const ChapterItem: React.FC<ChapterItemProps> = ({ chapter }) => {
   return (
     <div
       onClick={handleChapterClick}
-      className="p-4 border rounded-lg hover:bg-light-secondary-container hover:text-light-onSecondaryContainer transition-colors cursor-pointer"
+      className="p-4 border rounded-lg hover:bg-light-secondary-container hover:text-light-onSecondaryContainer transition-colors cursor-pointer flex justify-between items-center" // Add flex and items-center
     >
-      <h3 className="text-lg font-semibold">
-        Chapter {chapter.chapterIndex}: {chapter.title}
-      </h3>
-      <p className="text-sm text-gray-600">
-        Updated: {new Date(chapter.updatedAt).toLocaleDateString()}
-      </p>
+      <div>
+        <h3 className="text-lg font-semibold">
+          Chapter {chapter.chapterIndex}: {chapter.title}
+        </h3>
+        <p className="text-sm text-gray-600">
+          Updated: {new Date(chapter.updatedAt).toLocaleDateString()}
+        </p>
+      </div>
+      {isBookmarked && (
+        <span className="text-light-primary">
+          <BookmarkIcon className="text-light-primary h-5 w-5" />
+        </span>
+      )}
     </div>
   );
 };
