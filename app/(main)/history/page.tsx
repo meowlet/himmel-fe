@@ -165,7 +165,7 @@ const HistoryPage: React.FC = () => {
                           </div>
                         </div>
                         <div className="p-4 flex-grow">
-                          <h2 className="text-lg font-semibold text-light-onSurface mb-1">
+                          <h2 className="text-lg font-semibold text-light-onSurface mb-1 line-clamp-1">
                             {item.fiction?.title}
                           </h2>
                           <p className="text-sm text-light-onSurface-600 mb-2">
@@ -187,7 +187,7 @@ const HistoryPage: React.FC = () => {
                                 `/fiction/${item.fiction?._id}/chapter/${item.chapter?._id}`
                               )
                             }
-                            className="w-full sm:w-auto px-4 py-2 bg-light-primary text-light-onPrimary rounded-full hover:bg-light-primary-dark transition-colors"
+                            className="w-full sm:w-auto px-4 py-2 bg-light-primary text-light-onPrimary rounded-full hover:bg-light-primary-dark transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
                           >
                             Continue Reading
                           </button>
