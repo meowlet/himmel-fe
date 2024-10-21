@@ -41,7 +41,9 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {startIcon && <span className="mr-2">{startIcon}</span>}
-      <span className="relative z-10">{children}</span>
+      <span className="relative z-10 whitespace-nowrap overflow-hidden overflow-ellipsis">
+        {children}
+      </span>
       <span
         className={`${stateLayerClass} group-hover:opacity-[0.08] group-active:opacity-[0.12]`}
       ></span>
