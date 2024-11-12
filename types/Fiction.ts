@@ -30,6 +30,7 @@ export interface User {
   fullName: string;
   email: string;
   passwordHash: string;
+  authorApplicationStatus: string;
   isPremium: boolean;
   premiumExpiryDate: string | null;
   favoriteTags: string[];
