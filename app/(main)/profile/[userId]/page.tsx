@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Constant } from "@/util/Constant";
 import { Fiction, Tag, User } from "@/types/Fiction";
+import fetchWithAuth from "@/util/Fetcher";
+import { Dialog } from "@/components/common/Dialog";
 
 const UserProfile: React.FC = () => {
   const { userId } = useParams();
@@ -24,12 +26,21 @@ const UserProfile: React.FC = () => {
   const [visibleFavorites, setVisibleFavorites] = useState(6);
   const [hasMoreUserFictions, setHasMoreUserFictions] = useState(true);
 
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
+  const [applicationNote, setApplicationNote] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [dialogError, setDialogError] = useState<string | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await fetch(`${Constant.API_URL}/user/${userId}`);
+        const response = await fetchWithAuth(
+          `${Constant.API_URL}/user/${userId}`
+        );
         if (!response.ok) {
           throw new Error("Unable to load user data");
         }
@@ -96,6 +107,131 @@ const UserProfile: React.FC = () => {
     }
   }, [userId, user, userFictionLimit]);
 
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetchWithAuth(`${Constant.API_URL}/me`);
+        if (!response.ok) throw new Error("Failed to fetch current user");
+        const data = await response.json();
+        setCurrentUser(data.data);
+      } catch (err) {
+        console.error("Error fetching current user:", err);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  const handleApplySubmit = async () => {
+    setIsSubmitting(true);
+    setDialogError(null);
+    try {
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/me/apply-author`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ notes: applicationNote }),
+        }
+      );
+
+      const resData = await response.json();
+      if (!response.ok)
+        throw new Error(
+          resData.error?.details || "Failed to submit application"
+        );
+
+      // Refresh user data after successful submission
+      const updatedUserResponse = await fetchWithAuth(`${Constant.API_URL}/me`);
+      const updatedUserData = await updatedUserResponse.json();
+      setCurrentUser(updatedUserData.data);
+      setIsApplyDialogOpen(false);
+    } catch (err: any) {
+      console.error("Error submitting application:", err);
+      setDialogError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelApplication = async () => {
+    setIsSubmitting(true);
+    setDialogError(null);
+    try {
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/me/author-application`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const resData = await response.json();
+      if (!response.ok)
+        throw new Error(
+          resData.error?.details || "Failed to cancel application"
+        );
+
+      // Refresh user data
+      const updatedUserResponse = await fetchWithAuth(`${Constant.API_URL}/me`);
+      const updatedUserData = await updatedUserResponse.json();
+      setCurrentUser(updatedUserData.data);
+    } catch (err: any) {
+      console.error("Error canceling application:", err);
+      setDialogError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderAuthorStatus = () => {
+    if (currentUser?._id === userId) {
+      switch (currentUser?.authorApplicationStatus) {
+        case "approved":
+          return (
+            <span className="bg-light-primary-container text-light-onPrimaryContainer text-xs font-medium px-2.5 py-0.5 rounded">
+              Author
+            </span>
+          );
+        case "pending":
+          return (
+            <div className="flex gap-2 w-full justify-center mt-2">
+              <span className="bg-light-tertiary-container text-light-onTertiaryContainer text-xs font-medium px-2.5 py-0.5 rounded">
+                Application Pending
+              </span>
+              <button
+                onClick={handleCancelApplication}
+                className="bg-light-error text-light-onError text-xs font-medium px-2.5 py-0.5 rounded"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Canceling..." : "Cancel Application"}
+              </button>
+            </div>
+          );
+        case "rejected":
+          return (
+            <button
+              onClick={() => setIsApplyDialogOpen(true)}
+              className="bg-light-error-container text-light-onErrorContainer text-xs font-medium px-2.5 py-0.5 rounded"
+            >
+              Application Rejected - Apply Again
+            </button>
+          );
+        default:
+          return (
+            <button
+              onClick={() => setIsApplyDialogOpen(true)}
+              className="bg-light-secondary text-light-onSecondary text-xs font-medium px-2.5 py-0.5 rounded"
+            >
+              Apply to be Author
+            </button>
+          );
+      }
+    }
+    return null;
+  };
+
   const loadMoreUserFictions = () => {
     setUserFictionLimit((prevLimit) => prevLimit + 6);
   };
@@ -157,6 +293,7 @@ const UserProfile: React.FC = () => {
                 User
               </span>
             )}
+            {renderAuthorStatus()}
           </div>
         </div>
         <div className="border-t border-gray-200 px-6 py-4">
@@ -303,6 +440,48 @@ const UserProfile: React.FC = () => {
           </div>
         )}
       </div>
+
+      <Dialog
+        open={isApplyDialogOpen}
+        onClose={() => {
+          setIsApplyDialogOpen(false);
+          setDialogError(null);
+        }}
+      >
+        <div className="p-6">
+          <h3 className="text-xl font-semibold mb-4">Apply to be an Author</h3>
+          {dialogError && (
+            <div className="mb-4 p-2 bg-light-error-container text-light-onErrorContainer rounded">
+              {dialogError}
+            </div>
+          )}
+          <textarea
+            className="w-full p-2 border rounded-md"
+            rows={4}
+            value={applicationNote}
+            onChange={(e) => setApplicationNote(e.target.value)}
+            placeholder="Please tell us why you want to become an author..."
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              onClick={() => {
+                setIsApplyDialogOpen(false);
+                setDialogError(null);
+              }}
+              className="px-4 py-2 text-light-onSurface"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleApplySubmit}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-light-primary text-light-onPrimary rounded disabled:opacity-50"
+            >
+              {isSubmitting ? "Submitting..." : "Submit Application"}
+            </button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 };
