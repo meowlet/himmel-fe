@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Logo } from "@/components/common/Logo";
 import { Constant } from "@/util/Constant";
 import { useRouter } from "next/navigation";
+import fetchWithAuth from "@/util/Fetcher";
 
 const navLinks = [
   { href: "/sign-in", text: "Đăng nhập" },
@@ -13,7 +14,9 @@ const navLinks = [
 export const Header: React.FC = () => {
   const router = useRouter();
   const [username, setUsername] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
@@ -21,52 +24,27 @@ export const Header: React.FC = () => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await fetch(Constant.API_URL + "/me", {
-        credentials: "include",
-      });
+      const response = await fetchWithAuth(Constant.API_URL + "/me");
       const data = await response.json();
 
       if (data.status === "success") {
         setUsername(data.data.fullName || data.data.username);
-      } else if (data.error?.type === "INVALID_TOKEN") {
-        const refreshResponse = await fetch(
-          Constant.API_URL + "/auth/refresh",
-          {
-            method: "POST",
-            credentials: "include",
-          }
-        );
-        const refreshData = await refreshResponse.json();
-
-        if (refreshData.status === "success") {
-          const retryResponse = await fetch(Constant.API_URL + "/me", {
-            credentials: "include",
-          });
-          const retryData = await retryResponse.json();
-
-          if (retryData.status === "success") {
-            setUsername(retryData.data.fullName || retryData.data.username);
-          } else {
-            throw new Error(
-              "Không thể lấy thông tin người dùng sau khi làm mới token"
-            );
-          }
-        } else if (refreshData.error?.type === "INVALID_TOKEN") {
-          router.push("/sign-in");
-        } else {
-          throw new Error("Làm mới token thất bại");
-        }
+        setIsAdmin(data.data.isAdmin || false);
+        setUserId(data.data._id);
       } else {
-        throw new Error("Lỗi không xác định");
+        throw new Error("Failed to get user info");
       }
     } catch (error) {
-      console.error("Lỗi khi kiểm tra trạng thái đăng nhập:", error);
+      console.error("Error checking auth status:", error);
       setUsername(null);
+      setIsAdmin(false);
+      setUserId(null);
+      // router.push("/sign-in");
     }
   };
 
   const handleProfile = async () => {
-    router.push("/profile");
+    router.push(`/profile/${userId}`);
   };
 
   const handleHistory = async () => {
@@ -100,6 +78,10 @@ export const Header: React.FC = () => {
     router.push("/change-password");
   };
 
+  const handleManagement = async () => {
+    router.push("/dashboard");
+  };
+
   return (
     <header className="bg-light-surface shadow-md fixed top-0 left-0 right-0 z-50 nav-bar">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -122,6 +104,14 @@ export const Header: React.FC = () => {
                     >
                       Profile
                     </button>
+                    {isAdmin && (
+                      <button
+                        onClick={handleManagement}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Management
+                      </button>
+                    )}
                     <button
                       onClick={handlePremium}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

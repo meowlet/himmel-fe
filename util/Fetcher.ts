@@ -11,15 +11,25 @@ async function fetchWithAuth(
         credentials: "include",
       });
 
-      // Kiểm tra nếu response không ok (bao gồm cả 401)
       if (!response.ok) {
+        // Kiểm tra 403 trước khi parse JSON
+        if (response.status === 403) {
+          window.location.href = "/";
+          throw new Error("Forbidden access. Redirecting to index page.");
+        }
+
         const errorData = await response.json();
+        console.log("Response status:", response.status);
+        console.log("Full error data:", errorData);
 
         // Xử lý trường hợp token không hợp lệ
+        console.log(errorData.error?.type);
+
         if (
           errorData.error?.type === "INVALID_TOKEN" ||
           errorData.error?.type === "NO_TOKEN_PROVIDED"
         ) {
+          console.log("Starting token refresh process...");
           const refreshResponse = await fetch(
             `${Constant.API_URL}/auth/refresh`,
             {
@@ -27,10 +37,11 @@ async function fetchWithAuth(
               credentials: "include",
             }
           );
+          console.log("Refresh response status:", refreshResponse.status);
 
           if (!refreshResponse.ok) {
             // Nếu refresh token cũng thất bại, chuyển hướng đến trang đăng nhập
-            window.location.href = "/sign-in";
+            // window.location.href = "/sign-in";
             throw new Error(
               "Unauthorized access. Redirecting to sign-in page."
             );
@@ -41,7 +52,9 @@ async function fetchWithAuth(
         }
 
         // Ném lỗi cho các trường hợp khác
-        throw new Error(errorData.message || "Request failed");
+        throw new Error(
+          errorData.error?.details || errorData.message || "Request failed"
+        );
       }
 
       const data = await response.json();
