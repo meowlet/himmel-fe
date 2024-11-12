@@ -78,7 +78,7 @@ const FictionListContent: React.FC = () => {
       const res = await fetch(Constant.API_URL + "/user");
       const data = await res.json();
       if (data.status === "success") {
-        setUsers(data.data);
+        setUsers(data.data.users);
       }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách người dùng:", error);

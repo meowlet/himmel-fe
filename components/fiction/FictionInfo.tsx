@@ -8,6 +8,7 @@ import {
   GifIcon,
   GiftIcon,
   HeartIcon,
+  PencilIcon,
 } from "@heroicons/react/24/solid";
 import { Chapter, Fiction, Tag, User } from "@/types/Fiction";
 import { Tag as TagComponent } from "./Tag";
@@ -19,11 +20,33 @@ import { CommentSection } from "./CommentSection";
 import { HeartIcon as HeartIconOutline } from "@heroicons/react/24/outline";
 import fetchWithAuth from "@/util/Fetcher";
 import { useRouter } from "next/navigation";
+import Select from "react-select";
+import { z } from "zod";
 
 interface FictionInfoProps {
   fiction: Fiction;
   onFictionUpdate: (updatedFiction: Fiction) => void;
 }
+
+// Định nghĩa các schema validation
+const titleSchema = z
+  .string()
+  .min(3, "Title must be at least 3 characters")
+  .max(100, "Title must not exceed 100 characters")
+  .trim()
+  .nonempty("Title is required");
+
+const descriptionSchema = z
+  .string()
+  .min(10, "Description must be at least 10 characters")
+  .max(1000, "Description must not exceed 1000 characters")
+  .trim()
+  .nonempty("Description is required");
+
+const tagsSchema = z
+  .array(z.any())
+  .min(1, "At least one tag is required")
+  .max(10, "Maximum 10 tags allowed");
 
 export const FictionInfo: React.FC<FictionInfoProps> = ({
   fiction: initialFiction,
@@ -33,19 +56,91 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
   const [fiction, setFiction] = useState<Fiction>(initialFiction);
   const [userRating, setUserRating] = useState<number | null>(null);
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [isAuthor, setIsAuthor] = useState<boolean>(false);
 
   const favoriteStyle = isFavorite
     ? "bg-light-errorContainer text-light-onErrorContainer"
     : "bg-light-secondary-container text-light-onSecondaryContainer";
 
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [isEditingTags, setIsEditingTags] = useState(false);
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
+
+  const [editedTitle, setEditedTitle] = useState(fiction.title);
+  const [editedDescription, setEditedDescription] = useState(
+    fiction.description
+  );
+  const [editedTags, setEditedTags] = useState(fiction.tags);
+  const [editedStatus, setEditedStatus] = useState(fiction.status);
+
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+
+  // Thêm các state để quản lý lỗi
+  const [errors, setErrors] = useState<{
+    title?: string[];
+    description?: string[];
+    tags?: string[];
+  }>({});
+
+  const validateTitle = (title: string): boolean => {
+    try {
+      titleSchema.parse(title);
+      setErrors((prev) => ({ ...prev, title: undefined }));
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setErrors((prev) => ({
+          ...prev,
+          title: error.errors.map((e) => e.message),
+        }));
+      }
+      return false;
+    }
+  };
+
+  const validateDescription = (description: string): boolean => {
+    try {
+      descriptionSchema.parse(description);
+      setErrors((prev) => ({ ...prev, description: undefined }));
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setErrors((prev) => ({
+          ...prev,
+          description: error.errors.map((e) => e.message),
+        }));
+      }
+      return false;
+    }
+  };
+
+  const validateTags = (tags: Tag[] | string[]): boolean => {
+    try {
+      tagsSchema.parse(tags);
+      setErrors((prev) => ({ ...prev, tags: undefined }));
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setErrors((prev) => ({
+          ...prev,
+          tags: error.errors.map((e) => e.message),
+        }));
+      }
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchUserRating();
     checkFavoriteStatus();
+    checkIsAuthor();
+    fetchAllTags();
   }, [fiction._id]);
 
   const fetchUserRating = async () => {
     try {
-      const response = await fetchWithAuth(
+      const response = await fetch(
         `${Constant.API_URL}/interaction/${fiction._id}/rate`,
         {
           credentials: "include",
@@ -62,7 +157,7 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
 
   const checkFavoriteStatus = async () => {
     try {
-      const response = await fetchWithAuth(`${Constant.API_URL}/me`, {
+      const response = await fetch(`${Constant.API_URL}/me`, {
         credentials: "include",
       });
       const data = await response.json();
@@ -71,6 +166,21 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
       }
     } catch (error) {
       console.error("Lỗi khi kiểm tra trạng thái yêu thích:", error);
+    }
+  };
+
+  const checkIsAuthor = async () => {
+    try {
+      const response = await fetch(`${Constant.API_URL}/me`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      setIsAuthor((fiction.author as User)._id === data.data._id);
+    } catch (error) {
+      console.error(
+        "Lỗi khi kiểm tra xem người dùng có là tác giả hay không:",
+        error
+      );
     }
   };
 
@@ -122,7 +232,7 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
 
   const refetchFictionInfo = async () => {
     try {
-      const response = await fetchWithAuth(
+      const response = await fetch(
         `${Constant.API_URL}/fiction/${fiction._id}`,
         {
           credentials: "include",
@@ -144,13 +254,188 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
     }
   };
 
+  const handleUpdateFiction = async (updateData: Partial<Fiction>) => {
+    try {
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/fiction/${fiction._id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      if (response.ok) {
+        await refetchFictionInfo();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error updating fiction:", error);
+      return false;
+    }
+  };
+
+  const handleSaveTitle = async () => {
+    if (!validateTitle(editedTitle)) return;
+    if (await handleUpdateFiction({ title: editedTitle })) {
+      setIsEditingTitle(false);
+      setErrors((prev) => ({ ...prev, title: undefined }));
+    }
+  };
+
+  const handleSaveDescription = async () => {
+    if (!validateDescription(editedDescription)) return;
+    if (await handleUpdateFiction({ description: editedDescription })) {
+      setIsEditingDescription(false);
+      setErrors((prev) => ({ ...prev, description: undefined }));
+    }
+  };
+
+  const handleSaveTags = async () => {
+    if (!validateTags(editedTags)) return;
+    const tagIds = editedTags.map((tag) => (tag as Tag)._id);
+    if (await handleUpdateFiction({ tags: tagIds })) {
+      setIsEditingTags(false);
+      setErrors((prev) => ({ ...prev, tags: undefined }));
+    }
+  };
+
+  const handleSaveStatus = async () => {
+    if (await handleUpdateFiction({ status: editedStatus })) {
+      setIsEditingStatus(false);
+    }
+  };
+
+  const fetchAllTags = async () => {
+    try {
+      const response = await fetch(`${Constant.API_URL}/tag`, {
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (data.status === "success") {
+        setAllTags(data.data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách tags:", error);
+    }
+  };
+
   return (
     <div>
-      <h1 className="text-light-onSurface text-3xl font-bold mb-4">
-        {fiction.title}
-      </h1>
-      <p className="text-light-onSurfaceVariant mb-4">{fiction.description}</p>
-      <div className="flex items-center mb-4">
+      <div className="flex items-center gap-2 mb-4">
+        {isEditingTitle ? (
+          <div className="flex items-center gap-2 flex-grow">
+            <div className="flex-grow">
+              <input
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                className={`text-3xl font-bold bg-light-surfaceVariant p-2 rounded w-full ${
+                  errors.title ? "border-2 border-light-error" : ""
+                }`}
+                autoFocus
+              />
+              {errors.title &&
+                errors.title.map((error, index) => (
+                  <p key={index} className="text-light-error text-sm mt-1">
+                    {error}
+                  </p>
+                ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveTitle}
+                className="px-3 py-1 text-sm bg-light-primary-container text-light-onPrimaryContainer rounded hover:bg-light-primaryDark"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setEditedTitle(fiction.title);
+                  setIsEditingTitle(false);
+                }}
+                className="px-3 py-1 text-sm bg-light-error-container text-light-onErrorContainer rounded hover:bg-light-errorDark"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 w-full">
+            <h1 className="text-light-onSurface text-3xl font-bold flex-grow">
+              {fiction.title}
+            </h1>
+            {isAuthor && (
+              <button
+                className="p-1 rounded hover:bg-light-surfaceVariant"
+                onClick={() => setIsEditingTitle(true)}
+              >
+                <PencilIcon className="w-5 h-5 text-light-onSurfaceVariant" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 mb-4">
+        {isEditingDescription ? (
+          <div className="flex gap-2 w-full">
+            <div className="flex-grow">
+              <textarea
+                value={editedDescription}
+                onChange={(e) => setEditedDescription(e.target.value)}
+                className={`w-full bg-light-surfaceVariant p-2 rounded ${
+                  errors.description ? "border-2 border-light-error" : ""
+                }`}
+                rows={3}
+                autoFocus
+              />
+              {errors.description &&
+                errors.description.map((error, index) => (
+                  <p key={index} className="text-light-error text-sm mt-1">
+                    {error}
+                  </p>
+                ))}
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleSaveDescription}
+                className="px-3 py-1 text-sm bg-light-primary-container text-light-onPrimaryContainer rounded hover:bg-light-primaryDark"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setEditedDescription(fiction.description);
+                  setIsEditingDescription(false);
+                }}
+                className="px-3 py-1 text-sm bg-light-error-container text-light-onErrorContainer rounded hover:bg-light-errorDark"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2 w-full">
+            <p className="text-light-onSurfaceVariant flex-grow">
+              {fiction.description}
+            </p>
+            {isAuthor && (
+              <button
+                className="p-1 rounded hover:bg-light-surfaceVariant"
+                onClick={() => setIsEditingDescription(true)}
+              >
+                <PencilIcon className="w-5 h-5 text-light-onSurfaceVariant" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 mb-4">
         <span className="font-semibold mr-2">Author:</span>
         <span
           className="cursor-pointer text-light-primary hover:underline"
@@ -159,24 +444,142 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
           {(fiction.author as User).username}
         </span>
       </div>
-      <div className="flex items-center mb-4">
+
+      <div className="flex items-center gap-2 mb-4">
         <span className="font-semibold mr-2">Tags:</span>
-        <div className="flex flex-wrap gap-2">
-          {fiction.tags.map((tag) => (
-            <TagComponent
-              key={(tag as Tag).name}
-              name={(tag as Tag).name}
-              code={(tag as Tag).code}
-              description={(tag as Tag).description}
-              textSize="text-sm"
-            />
-          ))}
-        </div>
+        {isEditingTags ? (
+          <div className="flex gap-2 flex-grow">
+            <div className="flex-grow">
+              <Select
+                isMulti
+                name="tags"
+                options={allTags.map((tag) => ({
+                  value: tag._id,
+                  label: tag.name,
+                  description: tag.description,
+                }))}
+                className={`basic-multi-select ${
+                  errors.tags ? "border-2 border-light-error" : ""
+                }`}
+                classNamePrefix="select"
+                value={editedTags.map((tag) => ({
+                  value: (tag as Tag)._id,
+                  label: (tag as Tag).name,
+                  description: (tag as Tag).description,
+                }))}
+                onChange={(selectedOptions) => {
+                  setEditedTags(
+                    selectedOptions.map(
+                      (option) =>
+                        allTags.find((tag) => tag._id === option.value)!
+                    )
+                  );
+                }}
+                formatOptionLabel={({ label, description }) => (
+                  <div>
+                    <div>{label}</div>
+                    <div className="text-xs text-gray-500">{description}</div>
+                  </div>
+                )}
+              />
+              {errors.tags &&
+                errors.tags.map((error, index) => (
+                  <p key={index} className="text-light-error text-sm mt-1">
+                    {error}
+                  </p>
+                ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveTags}
+                className="px-3 py-1 text-sm bg-light-primary-container text-light-onPrimaryContainer rounded hover:bg-light-primaryDark"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setEditedTags(fiction.tags);
+                  setIsEditingTags(false);
+                }}
+                className="px-3 py-1 text-sm bg-light-error-container text-light-onErrorContainer rounded hover:bg-light-errorDark"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-grow">
+            <div className="flex flex-wrap gap-2 flex-grow">
+              {fiction.tags.map((tag) => (
+                <TagComponent
+                  key={(tag as Tag)._id}
+                  name={(tag as Tag).name}
+                  code={(tag as Tag).code}
+                  description={(tag as Tag).description}
+                  textSize="text-sm"
+                />
+              ))}
+            </div>
+            {isAuthor && (
+              <button
+                className="p-1 rounded hover:bg-light-surfaceVariant"
+                onClick={() => setIsEditingTags(true)}
+              >
+                <PencilIcon className="w-5 h-5 text-light-onSurfaceVariant" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
-      <div className="flex items-center mb-4">
+
+      <div className="flex items-center gap-2 mb-4">
         <span className="font-semibold mr-2">Status:</span>
-        <span className="capitalize">{fiction.status}</span>
+        {isEditingStatus ? (
+          <div className="flex items-center gap-2">
+            <select
+              value={editedStatus}
+              onChange={(e) => setEditedStatus(e.target.value)}
+              className="bg-light-surfaceVariant p-2 rounded"
+              autoFocus
+            >
+              <option value="ongoing">Ongoing</option>
+              <option value="finished">Finished</option>
+              <option value="draft">Draft</option>
+              <option value="hiatus">Hiatus</option>
+            </select>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveStatus}
+                className="px-3 py-1 text-sm bg-light-primary-container text-light-onPrimaryContainer rounded hover:bg-light-primaryDark"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setEditedStatus(fiction.status);
+                  setIsEditingStatus(false);
+                }}
+                className="px-3 py-1 text-sm bg-light-error-container text-light-onErrorContainer rounded hover:bg-light-errorDark"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="capitalize">{fiction.status}</span>
+            {isAuthor && (
+              <button
+                className="p-1 rounded hover:bg-light-surfaceVariant"
+                onClick={() => setIsEditingStatus(true)}
+              >
+                <PencilIcon className="w-5 h-5 text-light-onSurfaceVariant" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
       <div className="flex items-center mb-4">
         <span className="font-semibold mr-2">Type:</span>
         <span

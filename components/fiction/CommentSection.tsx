@@ -76,7 +76,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
   const fetchComments = async () => {
     try {
-      const response = await fetchWithAuth(
+      const response = await fetch(
         `${Constant.API_URL}/interaction/${fictionId}/comments?page=${currentPage}&limit=${itemsPerPage}`,
         {
           credentials: "include",
@@ -94,7 +94,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetchWithAuth(`${Constant.API_URL}/me`, {
+      const response = await fetch(`${Constant.API_URL}/me`, {
         credentials: "include",
       });
       const data = await response.json();
@@ -177,7 +177,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   };
 
   const handleSignIn = () => {
-    router.push("/sign-in");
+    // router.push("/sign-in");
   };
 
   const handleSortChange = (
