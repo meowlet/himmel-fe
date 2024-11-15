@@ -21,6 +21,7 @@ import { UserManagement } from "./components/UserManagement";
 import { RoleManagement } from "./components/RoleManagement";
 import { Statistics } from "./components/Statistics";
 import fetchWithAuth from "@/util/Fetcher";
+import { TagManagement } from "./components/TagManagement";
 
 interface Permission {
   resource: string;
@@ -47,6 +48,7 @@ const ResourceComponents: { [key: string]: React.FC } = {
   user: UserManagement,
   role: RoleManagement,
   statistic: Statistics,
+  tag: TagManagement,
   // Thêm các component khác khi được triển khai
   // permission: PermissionManagement,
   // fiction: FictionManagement,
