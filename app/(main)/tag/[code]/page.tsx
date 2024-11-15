@@ -37,6 +37,7 @@ export default function TagPage() {
       );
       const data = await res.json();
       if (data.status === "success") {
+        console.log(data.data.tag);
         setTag(data.data.tag);
         setFictions(data.data.fictions);
         setTotalPages(Math.ceil(data.data.total / itemsPerPage));
@@ -51,7 +52,7 @@ export default function TagPage() {
       const res = await fetch(Constant.API_URL + "/tag");
       const data = await res.json();
       if (data.status === "success") {
-        setTags(data.data);
+        setTags(data.data.tags);
       }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách tag:", error);

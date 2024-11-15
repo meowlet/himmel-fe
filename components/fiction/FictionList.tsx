@@ -66,7 +66,7 @@ const FictionListContent: React.FC = () => {
       const res = await fetch(Constant.API_URL + "/tag");
       const data = await res.json();
       if (data.status === "success") {
-        setTags(data.data);
+        setTags(data.data.tags);
       }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách tag:", error);

@@ -316,7 +316,7 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
       });
       const data = await response.json();
       if (data.status === "success") {
-        setAllTags(data.data);
+        setAllTags(data.data.tags);
       }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách tags:", error);
@@ -673,6 +673,7 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
         fictionId={fiction._id}
         chapters={fiction.chapters as Chapter[]}
         isPremiumFiction={fiction.type === "premium"}
+        authorId={(fiction.author as User)._id}
       />
 
       <CommentSection fictionId={fiction._id} />
