@@ -1,175 +1,164 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/common/Input";
-import { Button } from "@/components/common/Button";
+import React, { useState, useEffect } from "react";
 import { Constant } from "@/util/Constant";
+import { PencilIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
 import Select from "react-select";
+import fetchWithAuth from "@/util/Fetcher";
+import { Input } from "@/components/common/Input";
 import { z } from "zod";
-import Image from "next/image";
 
-// Enum types từ backend
-enum FictionType {
-  FREE = "free",
-  PREMIUM = "premium",
+interface Tag {
+  _id: string;
+  name: string;
+  code: string;
+  description: string;
+  workCount: number;
 }
 
-enum FictionStatus {
-  DRAFT = "draft",
-  FINISHED = "finished",
-  ONGOING = "ongoing",
-  HIATUS = "hiatus",
+enum TagSortField {
+  NAME = "name",
+  WORK_COUNT = "workCount",
+  CREATED_AT = "createdAt",
 }
 
-const addFictionSchema = z.object({
-  title: z
-    .string()
-    .min(1, "Title must not be empty")
-    .max(100, "Title must not exceed 100 characters"),
-  description: z.string().min(1, "Description must not be empty"),
-  tags: z
-    .array(z.string())
-    .min(1, "Must select at least 1 tag")
-    .max(10, "Cannot select more than 10 tags"),
-  status: z.nativeEnum(FictionStatus),
-  type: z.nativeEnum(FictionType),
-  cover: z
-    .instanceof(File)
-    .refine(
-      (file) => file.size <= 5 * 1024 * 1024,
-      "File size must not exceed 5MB"
-    )
-    .refine(
-      (file) => ["image/jpeg", "image/png"].includes(file.type),
-      "Only JPEG and PNG files are allowed"
-    )
-    .optional(),
+type SortOrder = "asc" | "desc";
+
+const tagSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  code: z.string().min(2, "Code must be at least 2 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
 });
 
-export const AddFictionForm: React.FC = () => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedTags, setSelectedTags] = useState<
-    Array<{ value: string; label: string }>
-  >([]);
-  const [status, setStatus] = useState<FictionStatus>(FictionStatus.ONGOING);
-  const [type, setType] = useState<FictionType>(FictionType.FREE);
-  const [cover, setCover] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string>("");
-  const [tags, setTags] = useState<Array<{ value: string; label: string }>>([]);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Thêm một ref để truy cập input file
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export const TagManagement = () => {
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<TagSortField>(TagSortField.CREATED_AT);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newTag, setNewTag] = useState({
+    name: "",
+    code: "",
+    description: "",
+  });
+  const [createErrors, setCreateErrors] = useState<{ [key: string]: string }>(
+    {}
+  );
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [editErrors, setEditErrors] = useState<{ [key: string]: string }>({});
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
 
   useEffect(() => {
     fetchTags();
+  }, [currentPage, searchTerm, sortBy, sortOrder]);
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetchWithAuth(`${Constant.API_URL}/me`, {
+          credentials: "include",
+        });
+        const data = await response.json();
+
+        if (data.status === "success") {
+          const tagResource = data.data.role?.permissions.find(
+            (p: any) => p.resource === "tag"
+          );
+          setUserPermissions(tagResource?.actions || []);
+        }
+      } catch (err) {
+        console.error("Error fetching user permissions:", err);
+      }
+    };
+
+    fetchCurrentUser();
   }, []);
+
+  const hasPermission = (action: string) => {
+    return userPermissions.includes(action);
+  };
 
   const fetchTags = async () => {
     try {
-      const response = await fetch(`${Constant.API_URL}/tag`);
-      const data = await response.json();
-      if (data.status === "success") {
-        setTags(
-          data.data.map((tag: any) => ({
-            value: tag._id,
-            label: tag.name,
-          }))
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching tags:", error);
-    }
-  };
-
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCover(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file && ["image/jpeg", "image/png"].includes(file.type)) {
-      setCover(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCoverPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveCover = () => {
-    setCover(null);
-    setCoverPreview("");
-    // Reset giá trị của input file
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    setSuccessMessage("");
-    setIsSubmitting(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("description", description);
-      selectedTags.forEach((tag) => formData.append("tags", tag.value));
-      formData.append("status", status);
-      formData.append("type", type);
-      if (cover) formData.append("cover", cover);
-
-      // Validate data
-      addFictionSchema.parse({
-        title,
-        description,
-        tags: selectedTags.map((t) => t.value),
-        status,
-        type,
-        cover,
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "10",
+        query: searchTerm,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
       });
 
-      const response = await fetch(`${Constant.API_URL}/fiction/create`, {
-        method: "POST",
-        body: formData,
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/tag?${queryParams}`,
+        {
+          credentials: "include",
+        }
+      );
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setTags(data.data.tags);
+        setTotalPages(Math.ceil(data.data.total / 10));
+      } else {
+        throw new Error(data.error.details || "An error occurred");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!window.confirm("Are you sure you want to delete this tag?")) return;
+
+    try {
+      const response = await fetchWithAuth(`${Constant.API_URL}/tag/${tagId}`, {
+        method: "DELETE",
         credentials: "include",
       });
 
-      const result = await response.json();
-
-      if (result.status === "success") {
-        setSuccessMessage("Fiction created successfully!");
-        resetForm();
+      if (response.ok) {
+        setTags(tags.filter((tag) => tag._id !== tagId));
       } else {
-        setErrors({ root: result.error.details || "An error occurred" });
+        throw new Error("Failed to delete tag");
+      }
+    } catch (err) {
+      setError("Error deleting tag");
+    }
+  };
+
+  const handleCreateTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateErrors({});
+
+    try {
+      const validatedData = tagSchema.parse(newTag);
+
+      const response = await fetchWithAuth(`${Constant.API_URL}/tag`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(validatedData),
+      });
+
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setIsCreateModalOpen(false);
+        setNewTag({ name: "", code: "", description: "" });
+        fetchTags();
+      } else {
+        setCreateErrors({
+          root: data.error?.details || data.message || "Failed to create tag",
+        });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -179,296 +168,316 @@ export const AddFictionForm: React.FC = () => {
             fieldErrors[err.path[0]] = err.message;
           }
         });
-        setErrors(fieldErrors);
+        setCreateErrors(fieldErrors);
       } else {
-        setErrors({ root: "An error occurred" });
+        setCreateErrors({
+          root: error instanceof Error ? error.message : "Error creating tag",
+        });
       }
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setSelectedTags([]);
-    setStatus(FictionStatus.ONGOING);
-    setType(FictionType.FREE);
-    setCover(null);
-    setCoverPreview("");
+  const handleEditTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTag) return;
+    setEditErrors({});
+
+    try {
+      const validatedData = tagSchema.parse({
+        name: editingTag.name,
+        code: editingTag.code,
+        description: editingTag.description,
+      });
+
+      const response = await fetchWithAuth(
+        `${Constant.API_URL}/tag/${editingTag._id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(validatedData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status === "success") {
+        setIsEditModalOpen(false);
+        setEditingTag(null);
+        fetchTags();
+      } else {
+        setEditErrors({
+          root: data.error?.details || data.message || "Failed to update tag",
+        });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldErrors: { [key: string]: string } = {};
+        error.errors.forEach((err) => {
+          if (err.path) {
+            fieldErrors[err.path[0]] = err.message;
+          }
+        });
+        setEditErrors(fieldErrors);
+      } else {
+        setEditErrors({
+          root: error instanceof Error ? error.message : "Error updating tag",
+        });
+      }
+    }
   };
 
-  const statusOptions = [
-    { value: FictionStatus.ONGOING, label: "Ongoing" },
-    { value: FictionStatus.FINISHED, label: "Finished" },
-    { value: FictionStatus.DRAFT, label: "Draft" },
-    { value: FictionStatus.HIATUS, label: "Hiatus" },
+  const sortOptions = [
+    { value: TagSortField.NAME, label: "Name" },
+    { value: TagSortField.WORK_COUNT, label: "Work Count" },
+    { value: TagSortField.CREATED_AT, label: "Created At" },
   ];
 
-  const typeOptions = [
-    { value: FictionType.FREE, label: "Free" },
-    { value: FictionType.PREMIUM, label: "Premium" },
+  const orderOptions = [
+    { value: "asc", label: "Ascending" },
+    { value: "desc", label: "Descending" },
   ];
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-light-error">{error}</div>;
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="max-w-4xl mx-auto p-6 space-y-6 bg-light-surface rounded-lg shadow"
-    >
-      {successMessage && (
-        <div className="p-4 bg-light-tertiary-container text-light-onTertiaryContainer rounded">
-          {successMessage}
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search tags..."
+          className="px-4 py-2 border rounded-lg"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <div className="flex gap-2">
+          <Select
+            options={sortOptions}
+            value={sortOptions.find((option) => option.value === sortBy)}
+            onChange={(option) => option && setSortBy(option.value)}
+            placeholder="Sort by"
+          />
+          <Select
+            options={orderOptions}
+            value={orderOptions.find((option) => option.value === sortOrder)}
+            onChange={(option) =>
+              option && setSortOrder(option.value as SortOrder)
+            }
+            placeholder="Order"
+          />
         </div>
-      )}
+      </div>
 
-      {errors.root && (
-        <div className="p-4 bg-light-error-container text-light-onErrorContainer rounded">
-          {errors.root}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-light-onSurface mb-1">
-              Title
-            </label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              error={errors.title}
-              placeholder="Enter fiction title"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-light-onSurface mb-1">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={`w-full p-3 rounded-lg bg-light-surface text-light-onSurface ${
-                errors.description
-                  ? "border-light-error"
-                  : "border-light-outline"
-              } focus:border-light-primary focus:ring-1 focus:ring-light-primary`}
-              rows={5}
-              placeholder="Enter fiction description"
-            />
-            {errors.description && (
-              <p className="mt-1 text-sm text-light-error">
-                {errors.description}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-light-onSurface mb-1">
-              Tags
-            </label>
-            <Select
-              isMulti
-              options={tags}
-              value={selectedTags}
-              onChange={(selected) => setSelectedTags(selected as any)}
-              className={errors.tags ? "border-light-error" : ""}
-              placeholder="Select tags"
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  borderColor: errors.tags
-                    ? "var(--light-error)"
-                    : "var(--light-outline)",
-                  "&:hover": {
-                    borderColor: "var(--light-primary)",
-                  },
-                }),
-                menu: (base) => ({
-                  ...base,
-                  backgroundColor: "var(--light-surface)",
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isFocused
-                    ? "var(--light-primary-container)"
-                    : "var(--light-surface)",
-                  color: "var(--light-onSurface)",
-                  "&:hover": {
-                    backgroundColor: "var(--light-primary-container)",
-                  },
-                }),
-              }}
-            />
-            {errors.tags && (
-              <p className="mt-1 text-sm text-light-error">{errors.tags}</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-light-onSurface mb-1">
-              Status
-            </label>
-            <Select
-              options={statusOptions}
-              value={statusOptions.find((opt) => opt.value === status)}
-              onChange={(selected) =>
-                setStatus(selected?.value as FictionStatus)
-              }
-              className={errors.status ? "border-light-error" : ""}
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  borderColor: errors.status
-                    ? "var(--light-error)"
-                    : "var(--light-outline)",
-                  "&:hover": {
-                    borderColor: "var(--light-primary)",
-                  },
-                }),
-                menu: (base) => ({
-                  ...base,
-                  backgroundColor: "var(--light-surface)",
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isFocused
-                    ? "var(--light-primary-container)"
-                    : "var(--light-surface)",
-                  color: "var(--light-onSurface)",
-                  "&:hover": {
-                    backgroundColor: "var(--light-primary-container)",
-                  },
-                }),
-              }}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-light-onSurface mb-1">
-              Type
-            </label>
-            <Select
-              options={typeOptions}
-              value={typeOptions.find((opt) => opt.value === type)}
-              onChange={(selected) => setType(selected?.value as FictionType)}
-              className={errors.type ? "border-light-error" : ""}
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  borderColor: errors.type
-                    ? "var(--light-error)"
-                    : "var(--light-outline)",
-                  "&:hover": {
-                    borderColor: "var(--light-primary)",
-                  },
-                }),
-                menu: (base) => ({
-                  ...base,
-                  backgroundColor: "var(--light-surface)",
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isFocused
-                    ? "var(--light-primary-container)"
-                    : "var(--light-surface)",
-                  color: "var(--light-onSurface)",
-                  "&:hover": {
-                    backgroundColor: "var(--light-primary-container)",
-                  },
-                }),
-              }}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-light-onSurface mb-1">
-              Cover Image
-            </label>
-            <input
-              type="file"
-              accept="image/jpeg,image/png"
-              onChange={handleCoverChange}
-              className="hidden"
-              id="cover-upload"
-              ref={fileInputRef}
-            />
-            <div
-              className={`mt-2 flex justify-center px-6 pt-5 pb-6 border-2 ${
-                isDragging ? "border-light-primary" : "border-light-outline"
-              } border-dashed rounded-lg transition-colors relative`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              {coverPreview ? (
-                <div className="w-full">
-                  <div className="relative w-full h-48 group">
-                    <Image
-                      src={coverPreview}
-                      alt="Cover preview"
-                      fill
-                      className="object-contain rounded-lg"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
-                      <label
-                        htmlFor="cover-upload"
-                        className="cursor-pointer bg-light-primary text-light-onPrimary px-3 py-1.5 rounded-lg hover:bg-light-primary/90 transition-colors"
-                      >
-                        Change
-                      </label>
+      <div className="overflow-x-auto">
+        <table className="min-w-full bg-light-surface rounded-lg">
+          <thead className="bg-light-surfaceVariant">
+            <tr>
+              <th className="px-6 py-3 text-left">Name</th>
+              <th className="px-6 py-3 text-left">Code</th>
+              <th className="px-6 py-3 text-left">Description</th>
+              <th className="px-6 py-3 text-left">Work Count</th>
+              <th className="px-6 py-3 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tags.map((tag) => (
+              <tr key={tag._id} className="border-t border-light-outline">
+                <td className="px-6 py-4">{tag.name}</td>
+                <td className="px-6 py-4">{tag.code}</td>
+                <td className="px-6 py-4">{tag.description}</td>
+                <td className="px-6 py-4">{tag.workCount}</td>
+                <td className="px-6 py-4">
+                  <div className="flex gap-2">
+                    {hasPermission("update") && (
                       <button
-                        type="button"
-                        onClick={handleRemoveCover}
-                        className="bg-light-error text-light-onError px-3 py-1.5 rounded-lg hover:bg-light-error/90 transition-colors"
+                        className="p-2 hover:bg-light-surfaceVariant rounded-full"
+                        onClick={() => {
+                          setEditingTag(tag);
+                          setIsEditModalOpen(true);
+                        }}
                       >
-                        Remove
+                        <PencilIcon className="w-5 h-5" />
                       </button>
-                    </div>
+                    )}
+                    {hasPermission("delete") && (
+                      <button
+                        className="p-2 hover:bg-light-errorContainer rounded-full"
+                        onClick={() => handleDeleteTag(tag._id)}
+                      >
+                        <TrashIcon className="w-5 h-5 text-light-error" />
+                      </button>
+                    )}
                   </div>
-                  <p className="text-xs text-light-onSurfaceVariant text-center mt-2">
-                    Drag and drop a new image to replace the current one
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-1 text-center">
-                  <div className="text-light-onSurfaceVariant">
-                    <label
-                      htmlFor="cover-upload"
-                      className="relative cursor-pointer bg-light-surface rounded-md font-medium text-light-primary hover:text-light-primary/80"
-                    >
-                      <span>Upload a file</span>
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-light-onSurfaceVariant">
-                    PNG, JPG up to 5MB
-                  </p>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-center gap-2 mt-4">
+        {Array.from({ length: totalPages }, (_, i) => (
+          <button
+            key={i + 1}
+            onClick={() => setCurrentPage(i + 1)}
+            className={`px-4 py-2 rounded ${
+              currentPage === i + 1
+                ? "bg-light-primary text-light-onPrimary"
+                : "bg-light-surfaceVariant"
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+
+      {hasPermission("create") && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-light-primary text-light-onPrimary rounded-lg"
+          >
+            <TagIcon className="w-5 h-5" />
+            Create Tag
+          </button>
+        </div>
+      )}
+
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-light-surface p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Create New Tag</h2>
+            <form onSubmit={handleCreateTag} className="space-y-4">
+              {createErrors.root && (
+                <div className="text-light-error text-sm">
+                  {createErrors.root}
                 </div>
               )}
-            </div>
-            {errors.cover && (
-              <p className="mt-1 text-sm text-light-error">{errors.cover}</p>
-            )}
+              <div>
+                <Input
+                  label="Name"
+                  type="text"
+                  value={newTag.name}
+                  onChange={(e) =>
+                    setNewTag({ ...newTag, name: e.target.value })
+                  }
+                  error={createErrors.name}
+                />
+              </div>
+              <div>
+                <Input
+                  label="Code"
+                  type="text"
+                  value={newTag.code}
+                  onChange={(e) =>
+                    setNewTag({ ...newTag, code: e.target.value })
+                  }
+                  error={createErrors.code}
+                />
+              </div>
+              <div>
+                <Input
+                  label="Description"
+                  type="text"
+                  value={newTag.description}
+                  onChange={(e) =>
+                    setNewTag({ ...newTag, description: e.target.value })
+                  }
+                  error={createErrors.description}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 text-light-onSurfaceVariant hover:bg-light-surfaceVariant rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-light-primary text-light-onPrimary rounded-lg"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex justify-end space-x-4">
-        <Button
-          type="button"
-          variant="outlined"
-          onClick={resetForm}
-          disabled={isSubmitting}
-        >
-          Reset
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Creating..." : "Create Fiction"}
-        </Button>
-      </div>
-    </form>
+      {isEditModalOpen && editingTag && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-light-surface p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Edit Tag</h2>
+            <form onSubmit={handleEditTag} className="space-y-4">
+              {editErrors.root && (
+                <div className="text-light-error text-sm">
+                  {editErrors.root}
+                </div>
+              )}
+              <div>
+                <Input
+                  label="Name"
+                  type="text"
+                  value={editingTag.name}
+                  onChange={(e) =>
+                    setEditingTag({ ...editingTag, name: e.target.value })
+                  }
+                  error={editErrors.name}
+                />
+              </div>
+              <div>
+                <Input
+                  label="Code"
+                  type="text"
+                  value={editingTag.code}
+                  onChange={(e) =>
+                    setEditingTag({ ...editingTag, code: e.target.value })
+                  }
+                  error={editErrors.code}
+                />
+              </div>
+              <div>
+                <Input
+                  label="Description"
+                  type="text"
+                  value={editingTag.description}
+                  onChange={(e) =>
+                    setEditingTag({
+                      ...editingTag,
+                      description: e.target.value,
+                    })
+                  }
+                  error={editErrors.description}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingTag(null);
+                  }}
+                  className="px-4 py-2 text-light-onSurfaceVariant hover:bg-light-surfaceVariant rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-light-primary text-light-onPrimary rounded-lg"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
