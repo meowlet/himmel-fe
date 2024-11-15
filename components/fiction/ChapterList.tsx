@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Constant } from "@/util/Constant";
 import { BookmarkIcon } from "@heroicons/react/24/solid";
+import { PlusCircleIcon } from "@heroicons/react/24/outline";
 
 interface ReadingHistoryItem {
   chapter: string;
@@ -15,12 +16,14 @@ interface ChapterListProps {
   fictionId: string;
   chapters: Chapter[];
   isPremiumFiction: boolean;
+  authorId: string;
 }
 
 export const ChapterList: React.FC<ChapterListProps> = ({
   fictionId,
   chapters,
   isPremiumFiction,
+  authorId,
 }) => {
   const [isUserSignedIn, setIsUserSignedIn] = useState(true);
   const [isPremiumUser, setIsPremiumUser] = useState(false);
@@ -31,6 +34,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   const [visibleChapters, setVisibleChapters] = useState(5);
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     checkUserStatus();
@@ -48,6 +52,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
         setIsUserSignedIn(true);
         setUserBookmarks(data.data.bookmarks || []);
         setReadingHistory(data.data.readingHistory || []);
+        setUserId(data.data._id);
       } else {
         setIsUserSignedIn(false);
       }
@@ -144,9 +149,26 @@ export const ChapterList: React.FC<ChapterListProps> = ({
       )}
       <div className="relative">
         {sortedChapters.length === 0 ? (
-          <p className="text-light-onSurfaceVariant">
-            This fiction has no chapters
-          </p>
+          <>
+            {userId === authorId ? (
+              <div
+                onClick={() =>
+                  router.push(`/fiction/${fictionId}/chapter/create`)
+                }
+                className="p-4 border-2 border-dashed rounded-lg hover:bg-light-secondary-container hover:text-light-onSecondaryContainer transition-colors cursor-pointer flex flex-col items-center justify-center space-y-2"
+              >
+                <PlusCircleIcon className="h-8 w-8" />
+                <h3 className="text-lg font-semibold">Add First Chapter</h3>
+                <p className="text-sm text-light-onSurfaceVariant">
+                  Start your story by adding the first chapter
+                </p>
+              </div>
+            ) : (
+              <p className="text-light-onSurfaceVariant text-center py-4">
+                This fiction has no chapters yet
+              </p>
+            )}
+          </>
         ) : (
           <>
             <div className="space-y-2">
@@ -157,6 +179,16 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                   isBookmarked={userBookmarks.includes(chapter._id)}
                 />
               ))}
+              {userId === authorId && (
+                <div
+                  onClick={() =>
+                    router.push(`/fiction/${fictionId}/chapter/create`)
+                  }
+                  className="p-4 border border-dashed rounded-lg hover:bg-light-secondary-container hover:text-light-onSecondaryContainer transition-colors cursor-pointer flex justify-center items-center"
+                >
+                  <h3 className="text-lg font-semibold">+ Add New Chapter</h3>
+                </div>
+              )}
             </div>
             <div className="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               {!showAll && visibleChapters < sortedChapters.length && (
