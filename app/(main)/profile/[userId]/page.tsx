@@ -58,24 +58,17 @@ const UserProfile: React.FC = () => {
 
   useEffect(() => {
     const fetchFavorites = async () => {
-      if (user && user.favorites) {
-        const favoritePromises = user.favorites.map(async (fictionId) => {
-          const response = await fetch(
-            `${Constant.API_URL}/fiction/${fictionId}`
-          );
-          if (!response.ok) {
-            throw new Error("Unable to load favorite fiction data");
-          }
-          const data = await response.json();
-          return data.data;
-        });
-
-        try {
-          const favoriteData = await Promise.all(favoritePromises);
-          setFavorites(favoriteData);
-        } catch (err) {
-          setError("An error occurred while loading favorite fictions");
+      try {
+        const response = await fetchWithAuth(
+          `${Constant.API_URL}/me/favorites`
+        );
+        if (!response.ok) {
+          throw new Error("Unable to load favorite fictions");
         }
+        const data = await response.json();
+        setFavorites(data.data);
+      } catch (err) {
+        setError("An error occurred while loading favorite fictions");
       }
     };
 

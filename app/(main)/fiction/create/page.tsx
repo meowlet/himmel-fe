@@ -10,9 +10,10 @@ export default function CreateFictionPage() {
   return (
     <div className="min-h-screen">
       <div className="container mx-auto py-8">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          Create New Fiction
-        </h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl">Create New Fiction</h1>
+          <button onClick={() => router.back()}>Back</button>
+        </div>
 
         <div>
           <AddFictionForm />

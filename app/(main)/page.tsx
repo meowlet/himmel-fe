@@ -6,10 +6,12 @@ import { NewestFictions } from "@/components/home/NewestFictions";
 import { PopularFictions } from "@/components/home/PopularFictions";
 import { PremiumFictions } from "@/components/home/PremiumFictions";
 import { CompletedFictions } from "@/components/home/CompletedFictions";
+import { RandomFictions } from "@/components/home/RandomFictions";
 
 const Home: React.FC = () => {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="mx-auto px-4 md:px-16 py-8">
+      <RandomFictions />
       <TrendingFictions />
       <NewestFictions />
       <PopularFictions />

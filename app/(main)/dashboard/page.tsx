@@ -22,12 +22,12 @@ import { RoleManagement } from "./components/RoleManagement";
 import { Statistics } from "./components/Statistics";
 import fetchWithAuth from "@/util/Fetcher";
 import { TagManagement } from "./components/TagManagement";
+import { FictionManagement } from "./components/FictionManagement";
 
 interface Permission {
   resource: string;
   actions: string[];
 }
-
 interface Role {
   _id: string;
   name: string;
@@ -49,9 +49,9 @@ const ResourceComponents: { [key: string]: React.FC } = {
   role: RoleManagement,
   statistic: Statistics,
   tag: TagManagement,
+  fiction: FictionManagement,
   // Thêm các component khác khi được triển khai
   // permission: PermissionManagement,
-  // fiction: FictionManagement,
   // ...
 };
 

@@ -14,14 +14,12 @@ interface Tag {
   code: string;
   description?: string;
   workCount: number;
-  createdAt: string;
 }
 
 enum TagSortField {
   NAME = "name",
   CODE = "code",
   WORK_COUNT = "workCount",
-  CREATED_AT = "createdAt",
 }
 
 type SortOrder = "asc" | "desc";
@@ -52,7 +50,7 @@ export const TagManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<TagSortField>(TagSortField.CREATED_AT);
+  const [sortBy, setSortBy] = useState<TagSortField>(TagSortField.NAME);
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newTag, setNewTag] = useState({
@@ -248,7 +246,6 @@ export const TagManagement = () => {
     { value: TagSortField.NAME, label: "Name" },
     { value: TagSortField.CODE, label: "Code" },
     { value: TagSortField.WORK_COUNT, label: "Work Count" },
-    { value: TagSortField.CREATED_AT, label: "Created At" },
   ];
 
   const orderOptions = [
@@ -296,7 +293,6 @@ export const TagManagement = () => {
               <th className="px-6 py-3 text-left">Code</th>
               <th className="px-6 py-3 text-left">Description</th>
               <th className="px-6 py-3 text-left">Work Count</th>
-              <th className="px-6 py-3 text-left">Created At</th>
               <th className="px-6 py-3 text-left">Actions</th>
             </tr>
           </thead>
@@ -307,9 +303,6 @@ export const TagManagement = () => {
                 <td className="px-6 py-4">{tag.code}</td>
                 <td className="px-6 py-4">{tag.description || "-"}</td>
                 <td className="px-6 py-4">{tag.workCount}</td>
-                <td className="px-6 py-4">
-                  {new Date(tag.createdAt).toLocaleDateString()}
-                </td>
                 <td className="px-6 py-4">
                   <div className="flex gap-2">
                     {hasPermission("update") && (
