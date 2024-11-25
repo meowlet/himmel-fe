@@ -60,7 +60,7 @@ const UserProfile: React.FC = () => {
     const fetchFavorites = async () => {
       try {
         const response = await fetchWithAuth(
-          `${Constant.API_URL}/me/favorites`
+          `${Constant.API_URL}/user/${userId}/favorites`
         );
         if (!response.ok) {
           throw new Error("Unable to load favorite fictions");

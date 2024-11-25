@@ -14,30 +14,11 @@ import {
 } from "@heroicons/react/24/solid";
 
 // Schema validation
-const addChapterSchema = z.object({
-  chapterIndex: z
-    .string()
-    .regex(
-      /^[1-9][0-9]{0,5}$/,
-      "Chapter index must be a number between 1 and 999999"
-    ),
-  title: z
-    .string()
-    .min(1, "Title must not be empty")
-    .max(256, "Title must not exceed 256 characters"),
-  content: z
-    .array(z.instanceof(File))
-    .min(1, "Must upload at least 1 page")
-    .max(256, "Cannot upload more than 256 pages")
-    .refine(
-      (files) => files.every((file) => file.size <= 5 * 1024 * 1024),
-      "Each file must not exceed 5MB"
-    )
-    .refine(
-      (files) =>
-        files.every((file) => ["image/jpeg", "image/png"].includes(file.type)),
-      "Only JPEG and PNG files are allowed"
-    ),
+const chapterSchema = z.object({
+  title: z.string().min(1, "Title must not be empty"),
+  chapterIndex: z.number().min(0, "Chapter index must be non-negative"),
+  pages: z.array(z.any()).min(1, "At least one page is required"),
+  type: z.enum(["free", "premium"]).optional(),
 });
 
 interface AddChapterFormProps {
@@ -110,10 +91,11 @@ export const AddChapterForm: React.FC<AddChapterFormProps> = ({
 
     try {
       // Validate data
-      addChapterSchema.parse({
-        chapterIndex,
+      chapterSchema.parse({
         title,
-        content: pages.map((p) => p.file),
+        chapterIndex: parseInt(chapterIndex),
+        pages: pages.map((p) => p.file),
+        type: "free",
       });
 
       const formData = new FormData();

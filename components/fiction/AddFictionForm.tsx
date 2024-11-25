@@ -33,17 +33,7 @@ const addFictionSchema = z.object({
     .max(10, "Cannot select more than 10 tags"),
   status: z.nativeEnum(FictionStatus),
   type: z.nativeEnum(FictionType),
-  cover: z
-    .instanceof(File)
-    .refine(
-      (file) => file.size <= 5 * 1024 * 1024,
-      "File size must not exceed 5MB"
-    )
-    .refine(
-      (file) => ["image/jpeg", "image/png"].includes(file.type),
-      "Only JPEG and PNG files are allowed"
-    )
-    .optional(),
+  cover: z.any().optional(),
 });
 
 export const AddFictionForm: React.FC = () => {

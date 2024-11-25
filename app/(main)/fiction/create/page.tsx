@@ -1,8 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import React from "react";
-import { AddFictionForm } from "@/components/fiction/AddFictionForm";
 import { useRouter } from "next/navigation";
+
+const AddFictionForm = dynamic(
+  () =>
+    import("@/components/fiction/AddFictionForm").then((mod) => ({
+      default: mod.AddFictionForm,
+    })),
+  { ssr: false }
+);
 
 export default function CreateFictionPage() {
   const router = useRouter();
@@ -10,11 +18,9 @@ export default function CreateFictionPage() {
   return (
     <div className="min-h-screen">
       <div className="container mx-auto py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl">Create New Fiction</h1>
-          <button onClick={() => router.back()}>Back</button>
-        </div>
-
+        <h1 className="text-2xl font-bold mb-6 text-light-onSurface text-center">
+          Create New Fiction
+        </h1>
         <div>
           <AddFictionForm />
         </div>
