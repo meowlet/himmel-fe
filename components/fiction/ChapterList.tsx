@@ -121,6 +121,7 @@ export const ChapterList: React.FC<ChapterListProps> = ({
   return (
     <div className="mt-8 relative">
       <h2 className="text-2xl font-bold mb-4">Chapter List</h2>
+
       {shouldShowReadingButtons && (
         <div className="mb-4 space-x-4">
           {currentReadingChapter && (
@@ -172,12 +173,13 @@ export const ChapterList: React.FC<ChapterListProps> = ({
         ) : (
           <>
             <div className="space-y-2">
-              {displayedChapters.map((chapter) => (
-                <ChapterItem
-                  key={chapter._id}
-                  chapter={chapter}
-                  isBookmarked={userBookmarks.includes(chapter._id)}
-                />
+              {displayedChapters.map((chapter, index) => (
+                <React.Fragment key={chapter._id}>
+                  <ChapterItem
+                    chapter={chapter}
+                    isBookmarked={userBookmarks.includes(chapter._id)}
+                  />
+                </React.Fragment>
               ))}
               {userId === authorId && (
                 <div

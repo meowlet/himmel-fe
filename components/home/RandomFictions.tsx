@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Fiction } from "@/types/Fiction";
 import { Constant } from "@/util/Constant";
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import { ChevronLeftIcon, ChevronRightIcon, BookOpenIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -10,6 +10,7 @@ export const RandomFictions = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const router = useRouter();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [imageErrors, setImageErrors] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchRandom = async () => {
@@ -61,6 +62,27 @@ export const RandomFictions = () => {
     router.push(`/fiction/${fictionId}`);
   };
 
+  const renderImage = (fiction: Fiction) => {
+    if (imageErrors[fiction._id]) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-light-surfaceVariant">
+          <BookOpenIcon className="w-24 h-24 text-light-onSurfaceVariant" />
+        </div>
+      );
+    }
+
+    return (
+      <Image
+        src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
+        alt={fiction.title}
+        layout="fill"
+        objectFit="cover"
+        className="group-hover:scale-105 transition-transform duration-300"
+        onError={() => setImageErrors(prev => ({ ...prev, [fiction._id]: true }))}
+      />
+    );
+  };
+
   if (fictions.length === 0) return null;
 
   return (
@@ -80,13 +102,7 @@ export const RandomFictions = () => {
               className="relative w-full h-full cursor-pointer group"
               onClick={() => handleFictionClick(fiction._id)}
             >
-              <Image
-                src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
-                alt={fiction.title}
-                layout="fill"
-                objectFit="cover"
-                className="group-hover:scale-105 transition-transform duration-300"
-              />
+              {renderImage(fiction)}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white pointer-events-none">
                 <h3 className="text-2xl font-bold mb-2">{fiction.title}</h3>

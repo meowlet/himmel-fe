@@ -90,7 +90,9 @@ export const SignUpForm: React.FC = () => {
           className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
           role="alert"
         >
-          <span className="block sm:inline">{successMessage}</span>
+          <span className="success-message block sm:inline">
+            {successMessage}
+          </span>
         </div>
       )}
       {errors.root && (
@@ -98,7 +100,7 @@ export const SignUpForm: React.FC = () => {
           className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
           role="alert"
         >
-          <span className="block sm:inline">{errors.root}</span>
+          <span className="error-message block sm:inline">{errors.root}</span>
         </div>
       )}
       <div>
@@ -109,6 +111,8 @@ export const SignUpForm: React.FC = () => {
           onChange={(e) => setUsername(e.target.value)}
           error={errors.username}
           className="rounded-md"
+          id="username"
+          name="username"
         />
       </div>
       <div>
@@ -118,6 +122,8 @@ export const SignUpForm: React.FC = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={errors.email}
+          id="email"
+          name="email"
           className="rounded-md"
         />
       </div>
@@ -128,6 +134,8 @@ export const SignUpForm: React.FC = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
+          id="password"
+          name="password"
           className="rounded-md"
         />
       </div>
@@ -137,7 +145,7 @@ export const SignUpForm: React.FC = () => {
           name="agree-terms"
           type="checkbox"
           required
-          className="h-4 w-4 text-light-primary focus:ring-light-primary border-light-outline rounded"
+          className="terms-checkbox h-4 w-4 text-light-primary focus:ring-light-primary border-light-outline rounded"
         />
         <label
           htmlFor="agree-terms"

@@ -29,6 +29,7 @@ export const Input: React.FC<InputProps> = ({
   helperText,
   onClear,
   showClearButton,
+  name,
   ...props
 }) => {
   const baseInputClasses =
@@ -37,6 +38,9 @@ export const Input: React.FC<InputProps> = ({
     outlined: "bg-transparent border border-light-outline text-light-onSurface",
     filled: "bg-light-surfaceVariant text-light-onSurfaceVariant",
   };
+
+  // Generate error message classname based on input name
+  const errorClassName = name ? `${name}-error` : "input-error";
 
   return (
     <div className="input-container">
@@ -48,10 +52,11 @@ export const Input: React.FC<InputProps> = ({
       <div className="relative flex items-center h-10">
         <input
           className={`${baseInputClasses} ${variantClasses[variant]} ${
-            error ? "border-light-error" : ""
+            error ? `border-light-error` : ""
           } ${icon ? "pl-10" : ""} ${
             showClearButton ? "pr-10" : ""
           } ${className} h-full`}
+          name={name}
           {...props}
         />
         {icon && (
@@ -73,7 +78,7 @@ export const Input: React.FC<InputProps> = ({
         <p
           className={`mt-1 text-sm ${
             error ? "text-light-error" : "text-light-onSurfaceVariant"
-          }`}
+          } ${error ? errorClassName : ""}`}
         >
           {error || helperText}
         </p>

@@ -46,14 +46,22 @@ export const FictionCardVariant: React.FC<FictionCardVariantProps> = ({
           className="relative h-48 w-full cursor-pointer"
           onClick={handleClick}
         >
-          <Image
-            src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
-            alt={fiction.title}
-            layout="fill"
-            objectFit="cover"
-            className="object-center"
-            onError={() => setImageError(true)}
-          />
+          {!imageError ? (
+            <Image
+              src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
+              alt={fiction.title}
+              layout="fill"
+              objectFit="cover"
+              className="object-center"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full bg-light-error-container flex items-center justify-center">
+              <p className="text-light-onErrorContainer text-center text-lg font-bold">
+                No cover image
+              </p>
+            </div>
+          )}
         </div>
         <div className="p-4">
           <h3
@@ -78,14 +86,22 @@ export const FictionCardVariant: React.FC<FictionCardVariantProps> = ({
         className={`bg-light-surface rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex ${className}`}
       >
         <div className="w-1/3 min-h-[8rem] relative" onClick={handleClick}>
-          <Image
-            src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
-            alt={fiction.title}
-            layout="fill"
-            objectFit="cover"
-            className="object-center cursor-pointer"
-            onError={() => setImageError(true)}
-          />
+          {!imageError ? (
+            <Image
+              src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
+              alt={fiction.title}
+              layout="fill"
+              objectFit="cover"
+              className="object-center cursor-pointer"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full bg-light-error-container flex items-center justify-center">
+              <p className="text-light-onErrorContainer text-center text-sm font-bold">
+                No cover
+              </p>
+            </div>
+          )}
         </div>
         <div className="w-2/3 p-4">
           <h3
@@ -110,14 +126,22 @@ export const FictionCardVariant: React.FC<FictionCardVariantProps> = ({
         className={`bg-light-surface rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex min-h-[6rem] ${className}`}
       >
         <div className="w-24 relative" onClick={handleClick}>
-          <Image
-            src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
-            alt={fiction.title}
-            layout="fill"
-            objectFit="cover"
-            className="object-center cursor-pointer"
-            onError={() => setImageError(true)}
-          />
+          {!imageError ? (
+            <Image
+              src={`${Constant.API_URL}/fiction/${fiction._id}/cover`}
+              alt={fiction.title}
+              layout="fill"
+              objectFit="cover"
+              className="object-center cursor-pointer"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full bg-light-error-container flex items-center justify-center">
+              <p className="text-light-onErrorContainer text-center text-xs font-bold">
+                No cover
+              </p>
+            </div>
+          )}
         </div>
         <div className="flex-1 p-4">
           <h3

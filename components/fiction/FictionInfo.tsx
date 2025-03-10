@@ -83,6 +83,8 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
     tags?: string[];
   }>({});
 
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+
   const validateTitle = (title: string): boolean => {
     try {
       titleSchema.parse(title);
@@ -323,6 +325,10 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
     }
   };
 
+  const toggleDescription = () => {
+    setIsDescriptionExpanded(!isDescriptionExpanded);
+  };
+
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
@@ -419,18 +425,34 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
             </div>
           </div>
         ) : (
-          <div className="flex items-start gap-2 w-full">
-            <p className="text-light-onSurfaceVariant flex-grow">
-              {fiction.description}
-            </p>
-            {isAuthor && (
-              <button
-                className="p-1 rounded hover:bg-light-surfaceVariant"
-                onClick={() => setIsEditingDescription(true)}
-              >
-                <PencilIcon className="w-5 h-5 text-light-onSurfaceVariant" />
-              </button>
-            )}
+          <div className="flex flex-col w-full">
+            <div className="flex items-start gap-2 w-full">
+              <div className="flex-grow">
+                <div
+                  className={`text-light-onSurfaceVariant overflow-hidden transition-all duration-300 ${
+                    isDescriptionExpanded ? "max-h-full" : "max-h-24"
+                  }`}
+                >
+                  <p className="whitespace-pre-line">{fiction.description}</p>
+                </div>
+                {fiction.description.length > 100 && (
+                  <button
+                    onClick={toggleDescription}
+                    className="text-light-primary hover:underline mt-2 text-sm"
+                  >
+                    {isDescriptionExpanded ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
+              {isAuthor && (
+                <button
+                  className="p-1 rounded hover:bg-light-surfaceVariant"
+                  onClick={() => setIsEditingDescription(true)}
+                >
+                  <PencilIcon className="w-5 h-5 text-light-onSurfaceVariant" />
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -580,7 +602,7 @@ export const FictionInfo: React.FC<FictionInfoProps> = ({
         )}
       </div>
 
-      <div className="flex items-center mb-4">
+      <div className="flex items-center gap-2 mb-4">
         <span className="font-semibold mr-2">Type:</span>
         <span
           className={`flex items-center px-2 py-1 rounded-full ${

@@ -16,6 +16,7 @@ export interface Fiction {
   chapters?: string[] | Chapter[];
   createdAt: string;
   updatedAt: string;
+  showAds?: boolean;
 }
 
 interface ReadingHistory {
@@ -40,6 +41,7 @@ export interface User {
   bio: string | null;
   favorites: string[] | Fiction[];
   readingHistory: ReadingHistory[];
+  disableAds?: boolean;
 }
 
 export interface Tag {

@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { usePathname } from "next/navigation";
+import Script from "next/script";
 
 // Google Sans font
 const googleSans = localFont({
@@ -50,10 +51,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
-  const shouldHideHeader = hideHeaderPaths.includes(pathname);
+  const shouldHideHeader = hideHeaderPaths.includes(pathname as any);
 
   return (
     <html lang="vi" className="scroll-smooth">
+      <head>
+        {/* Google AdSense Script */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6001903694968256"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={`${googleSans.variable} font-sans antialiased bg-light-surface text-light-onSurface`}
       >
