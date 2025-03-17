@@ -55,9 +55,51 @@ export const ChapterList: React.FC<ChapterListProps> = ({
         setUserId(data.data._id);
       } else {
         setIsUserSignedIn(false);
+
+        // Check localStorage for premium token when not signed in
+        if (typeof window !== "undefined") {
+          const premiumToken = localStorage.getItem("himmel_premium_token");
+
+          if (premiumToken) {
+            try {
+              const validateResponse = await fetch(
+                `${Constant.API_URL}/me/validate/${premiumToken}`,
+                { credentials: "include" }
+              );
+              const validateData = await validateResponse.json();
+
+              if (validateData.data.isValid) {
+                setIsPremiumUser(true);
+              }
+            } catch (tokenError) {
+              console.error("Error validating premium token:", tokenError);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error("Error checking user status:", error);
+
+      // Also check localStorage here in case the main request fails
+      if (typeof window !== "undefined") {
+        const premiumToken = localStorage.getItem("himmel_premium_token");
+
+        if (premiumToken) {
+          try {
+            const validateResponse = await fetch(
+              `${Constant.API_URL}/me/validate/${premiumToken}`,
+              { credentials: "include" }
+            );
+            const validateData = await validateResponse.json();
+
+            if (validateData.data.isValid) {
+              setIsPremiumUser(true);
+            }
+          } catch (tokenError) {
+            console.error("Error validating premium token:", tokenError);
+          }
+        }
+      }
     }
   };
 

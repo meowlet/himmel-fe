@@ -58,6 +58,7 @@ export const SignInForm: React.FC = () => {
       const result = await response.json();
 
       if (result.status === "success") {
+        localStorage.removeItem("himmel_premium_token");
         setSuccessMessage("Sign in successfully, redirecting...");
         // Lưu token vào localStorage hoặc cookie nếu cần
         localStorage.setItem("accessToken", result.data.accessToken);

@@ -160,12 +160,48 @@ const ReaderPage: React.FC = () => {
         credentials: "include",
       });
       const data = await response.json();
-      setIsUserPremium(data.data.isPremium);
+
+      if (data.status === "success") {
+        setIsUserPremium(data.data.isPremium);
+      } else {
+        // If regular authentication fails, check for premium token in localStorage
+        checkPremiumToken();
+      }
     } catch (error) {
       console.error("Error checking authentication status:", error);
       setIsUserPremium(false);
+
+      // Also try to check premium token if main request fails
+      checkPremiumToken();
     } finally {
       setIsAuthChecked(true);
+    }
+  };
+
+  const checkPremiumToken = async () => {
+    if (typeof window !== "undefined") {
+      const premiumToken = localStorage.getItem("himmel_premium_token");
+
+      if (premiumToken) {
+        try {
+          const validateResponse = await fetch(
+            `${Constant.API_URL}/me/validate/${premiumToken}`,
+            { credentials: "include" }
+          );
+          const validateData = await validateResponse.json();
+
+          if (validateData.data && validateData.data.isValid) {
+            setIsUserPremium(true);
+          } else {
+            setIsUserPremium(false);
+          }
+        } catch (tokenError) {
+          console.error("Error validating premium token:", tokenError);
+          setIsUserPremium(false);
+        }
+      } else {
+        setIsUserPremium(false);
+      }
     }
   };
 
