@@ -12,6 +12,11 @@ enum Duration {
   ONE_YEAR = "ONE_YEAR",
 }
 
+enum PaymentMethod {
+  MOMO = "MOMO",
+  VNPAY = "VNPAY",
+}
+
 const prices = {
   [Duration.ONE_MONTH]: "5000",
   [Duration.THREE_MONTH]: "14000",
@@ -49,6 +54,8 @@ export default function PremiumPage() {
   const [selectedDuration, setSelectedDuration] = useState<Duration>(
     Duration.ONE_MONTH
   );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<PaymentMethod>(PaymentMethod.MOMO);
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -127,7 +134,12 @@ export default function PremiumPage() {
         ...(!isLoggedIn && email && { email }),
       };
 
-      const url = isLoggedIn ? "/me/purchase-premium" : "/me/purchase";
+      // Use different endpoint based on payment method for logged-in users
+      let url = isLoggedIn
+        ? selectedPaymentMethod === PaymentMethod.VNPAY
+          ? "/me/purchase-premium-vnpay"
+          : "/me/purchase-premium"
+        : "/me/purchase";
 
       const response = await fetch(Constant.API_URL + url, {
         method: "POST",
@@ -252,6 +264,51 @@ export default function PremiumPage() {
               );
             })}
           </div>
+
+          {/* Payment method selection (only for logged-in users) */}
+          {isLoggedIn && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4 text-light-onSurface">
+                Payment Method
+              </h3>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-md">
+                {Object.values(PaymentMethod).map((method) => (
+                  <div
+                    key={method}
+                    className={`relative rounded-lg border-2 p-4 cursor-pointer transition-all duration-200 ${
+                      selectedPaymentMethod === method
+                        ? "border-light-primary bg-light-primaryContainer shadow-md"
+                        : "border-light-outline hover:border-light-primary hover:shadow bg-light-surface"
+                    }`}
+                    onClick={() => setSelectedPaymentMethod(method)}
+                  >
+                    <div className="flex items-center">
+                      <div className="mr-3">
+                        <div
+                          className={`w-5 h-5 rounded-full border ${
+                            selectedPaymentMethod === method
+                              ? "border-4 border-light-primary"
+                              : "border-2 border-light-outline"
+                          }`}
+                        />
+                      </div>
+                      <div className="text-light-onSurface font-medium">
+                        {method}
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value={method}
+                      checked={selectedPaymentMethod === method}
+                      onChange={() => setSelectedPaymentMethod(method)}
+                      className="sr-only"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!isLoggedIn && (
             <div className="mt-6">

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Constant } from "@/util/Constant";
 import { BookmarkIcon } from "@heroicons/react/24/solid";
 import { PlusCircleIcon } from "@heroicons/react/24/outline";
+import { AdUnit } from "@/components/ad/AdUnit";
+import { BannerAd } from "@/components/ad/BannerAd";
 
 interface ReadingHistoryItem {
   chapter: string;
@@ -190,6 +192,13 @@ export const ChapterList: React.FC<ChapterListProps> = ({
           )}
         </div>
       )}
+
+      {!isPremiumUser && (
+        <div className="my-4">
+          <BannerAd />
+        </div>
+      )}
+
       <div className="relative">
         {sortedChapters.length === 0 ? (
           <>
@@ -221,8 +230,16 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                     chapter={chapter}
                     isBookmarked={userBookmarks.includes(chapter._id)}
                   />
+                  {!isPremiumUser &&
+                    index === 2 &&
+                    displayedChapters.length > 5 && (
+                      <div className="my-4">
+                        <AdUnit slotId="4408441888" format="horizontal" />
+                      </div>
+                    )}
                 </React.Fragment>
               ))}
+
               {userId === authorId && (
                 <div
                   onClick={() =>
@@ -234,6 +251,13 @@ export const ChapterList: React.FC<ChapterListProps> = ({
                 </div>
               )}
             </div>
+
+            {!isPremiumUser && displayedChapters.length > 3 && (
+              <div className="my-4">
+                <AdUnit slotId="4408441888" format="rectangle" />
+              </div>
+            )}
+
             <div className="mt-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
               {!showAll && visibleChapters < sortedChapters.length && (
                 <>
@@ -296,6 +320,12 @@ export const ChapterList: React.FC<ChapterListProps> = ({
           </div>
         ) : null}
       </div>
+
+      {!isPremiumUser && (
+        <div className="mt-8">
+          <AdUnit slotId="4408441888" />
+        </div>
+      )}
     </div>
   );
 };

@@ -92,7 +92,9 @@ export default function ChangePasswordPage() {
               className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative"
               role="alert"
             >
-              <span className="block sm:inline">{successMessage}</span>
+              <span className="block sm:inline success-message">
+                {successMessage}
+              </span>
             </div>
           )}
           {errors.root && (
@@ -100,37 +102,45 @@ export default function ChangePasswordPage() {
               className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
               role="alert"
             >
-              <span className="block sm:inline">{errors.root}</span>
+              <span className="block sm:inline error-message">
+                {errors.root}
+              </span>
             </div>
           )}
           <div>
             <Input
               label="Current password"
               type="password"
+              id="currentPassword"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               error={errors.currentPassword}
               className="rounded-md"
+              name="currentPassword"
             />
           </div>
           <div>
             <Input
               label="New password"
               type="password"
+              id="newPassword"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               error={errors.newPassword}
               className="rounded-md"
+              name="newPassword"
             />
           </div>
           <div>
             <Input
               label="Confirm new password"
               type="password"
+              id="confirmNewPassword"
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               error={errors.confirmNewPassword}
               className="rounded-md"
+              name="confirmNewPassword"
             />
           </div>
           <Button type="submit" className="w-full">
