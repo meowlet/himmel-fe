@@ -41,7 +41,7 @@ const GoogleCallbackPage = () => {
             if (data.data.isNewUser) {
               router.push("/set-username");
             } else {
-              router.push("/dashboard");
+              router.push("/");
             }
           } else {
             setError("Google authentication failed: " + data.error);

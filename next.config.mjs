@@ -7,8 +7,8 @@ const nextConfig = {
         hostname: "osu.ppy.sh",
       },
       {
-        protocol: "http",
-        hostname: "localhost",
+        protocol: "https",
+        hostname: "api.himmel.meowsica.me",
       },
     ],
     domains: ["your-api-domain.com"],

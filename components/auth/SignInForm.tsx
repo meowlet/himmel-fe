@@ -66,7 +66,7 @@ export const SignInForm: React.FC = () => {
           localStorage.setItem("refreshToken", result.data.refreshToken);
         }
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/");
         }, 2000);
       } else {
         setErrors({ root: result.error.details || "Sign in failed" });
