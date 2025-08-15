@@ -193,7 +193,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
         <Button
           onClick={handleApply}
           variant="filled"
-          className="bg-light-primary text-light-onPrimary"
+          className="bg-light-primary text-light-onPrimary apply-button"
         >
           Apply
         </Button>

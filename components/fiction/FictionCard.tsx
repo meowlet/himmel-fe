@@ -65,7 +65,10 @@ export const FictionCard: React.FC<FictionCardProps> = ({
   };
 
   return (
-    <div className="bg-light-surface rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
+    <div
+      className="bg-light-surface rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full"
+      data-testid="fiction-card"
+    >
       <div
         className="relative h-48 w-full cursor-pointer"
         onClick={handleTitleClick}
@@ -90,9 +93,18 @@ export const FictionCard: React.FC<FictionCardProps> = ({
         <h3
           className="font-semibold text-light-onSurface text-lg mb-2 truncate cursor-pointer"
           onClick={handleTitleClick}
+          data-testid="fiction-title"
         >
           {fiction.title}
         </h3>
+        {fiction.author && (
+          <p
+            className="text-light-onSurfaceVariant text-sm mb-2 author-name"
+            data-testid="fiction-author"
+          >
+            {fiction.author.fullName as string}
+          </p>
+        )}
         <p className="text-light-onSurfaceVariant text-sm mb-4 line-clamp-2">
           {fiction.description}
         </p>
@@ -123,7 +135,7 @@ export const FictionCard: React.FC<FictionCardProps> = ({
         <div className="flex-grow overflow-hidden mb-4 relative">
           <div
             ref={tagsContainerRef}
-            className="flex flex-nowrap overflow-x-auto scrollbar-hide"
+            className="flex flex-nowrap overflow-x-auto scrollbar-hide tags"
           >
             {fiction.tags.map((tagId) => {
               const tagInfo = getTagInfo(tagId as string);
@@ -133,8 +145,9 @@ export const FictionCard: React.FC<FictionCardProps> = ({
                   name={tagInfo.name}
                   code={tagInfo.code}
                   description={tagInfo.description}
-                  className="mr-2 mb-2 flex-shrink-0"
+                  className="mr-2 mb-2 flex-shrink-0 tag"
                   textSize="text-xs"
+                  data-testid="fiction-tag"
                 />
               ) : null;
             })}
