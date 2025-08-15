@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
+import { NotificationPopup } from "@/components/common/NotificationPopup";
+import { NotificationTestControls } from "@/components/common/NotificationTestControls";
 import { usePathname } from "next/navigation";
+import { useNotificationPopup } from "@/hooks/useNotificationPopup";
 import Script from "next/script";
 
 // Google Sans font
@@ -52,6 +55,7 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const shouldHideHeader = hideHeaderPaths.includes(pathname as any);
+  const { isVisible, closePopup, dontShowAgain } = useNotificationPopup();
 
   return (
     <html lang="vi" className="scroll-smooth">
@@ -68,6 +72,16 @@ export default function RootLayout({
       >
         {!shouldHideHeader && <Header />}
         <main className={shouldHideHeader ? "" : "mt-16 px-4"}>{children}</main>
+        
+        {/* Notification Popup */}
+        <NotificationPopup
+          isOpen={isVisible}
+          onClose={closePopup}
+          onDontShowAgain={dontShowAgain}
+        />
+        
+        {/* Test Controls (Development only) */}
+        <NotificationTestControls />
       </body>
     </html>
   );
