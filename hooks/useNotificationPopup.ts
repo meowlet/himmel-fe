@@ -7,11 +7,9 @@ export const useNotificationPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Kiểm tra localStorage để xem user đã tick "không hiện lại" chưa
     const isDismissed = localStorage.getItem(STORAGE_KEY);
-    
+
     if (!isDismissed) {
-      // Delay một chút để trang load xong trước khi hiện popup
       const timer = setTimeout(() => {
         setIsVisible(true);
       }, 1500);
@@ -29,7 +27,6 @@ export const useNotificationPopup = () => {
     setIsVisible(false);
   };
 
-  // Function để reset (dành cho testing)
   const resetNotification = () => {
     localStorage.removeItem(STORAGE_KEY);
     setIsVisible(true);
